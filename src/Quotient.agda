@@ -16,22 +16,25 @@ MultiArgFn (suc n) a r = MultiArgFn n a (a → r)
 Relation : (arity : ℕ) (A : Set) → Set₁
 Relation arity A = MultiArgFn arity A Set
 
+Rel₂ : (A : Set) → Set₁
+Rel₂ A = Relation 2 A
+
 data PairInt : Set where
   ⟨_-_⟩ : ℕ → ℕ → PairInt
 
-≡PairInt : PairInt → PairInt → Set
+≡PairInt : Rel₂ PairInt
 ≡PairInt ⟨ a - b ⟩ ⟨ c - d ⟩ = a + d ≡ b + c
 
-Reflexive : {A : Set} (_≈_ : Relation 2 A) → Set
+Reflexive : {A : Set} (_≈_ : Rel₂ A) → Set
 Reflexive _≈_ = ∀ x → x ≈ x
 
-Symmetric : {A : Set} (_≈_ : Relation 2 A) → Set
+Symmetric : {A : Set} (_≈_ : Rel₂ A) → Set
 Symmetric _≈_ = ∀ x y → x ≈ y → y ≈ x
 
-Transitive : {A : Set} (_≈_ : Relation 2 A) → Set
+Transitive : {A : Set} (_≈_ : Rel₂ A) → Set
 Transitive _≈_ = ∀ x y z → x ≈ y → y ≈ z → x ≈ z
 
-record IsEquivalence {A : Set} (_≈_ : Relation 2 A) : Set where
+record IsEquivalence {A : Set} (_≈_ : Rel₂ A) : Set where
   field
     reflexive : Reflexive _≈_
     symmetric : Symmetric _≈_
@@ -71,7 +74,7 @@ trans-lemma w x y z =
 record Setoid : Set₁ where
   field
     A : Set
-    _≈_ : Relation 2 A
+    _≈_ : Rel₂ A
     isEquiv : IsEquivalence _≈_
 
 PairInt-Setoid : Setoid
