@@ -3,8 +3,8 @@ module Quotient where
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.Product
-open import Level
-open import Relation.Binary.PropositionalEquality
+open import Level renaming (zero to lzero; suc to lsuc)
+open import Relation.Binary.PropositionalEquality hiding ([_])
 
 open import Algebra.Solver.CommutativeMonoid +-0-commutativeMonoid
 
@@ -80,3 +80,55 @@ record Setoid : Set₁ where
 PairInt-Setoid : Setoid
 PairInt-Setoid =
   record { A = PairInt ; _≈_ = ≡PairInt ; isEquiv = ≡PairInt-IsEquiv }
+
+record Prequotient (S : Setoid) : Set₁ where
+  open Setoid S
+  field
+    Q : Set
+    [_] : A → Q
+    sound : (a b : A) → a ≈ b → [ a ] ≡ [ b ]
+
+PairInt-refl-equiv : ∀ x → ≡PairInt ⟨ x - x ⟩ ⟨ zero - zero ⟩
+PairInt-refl-equiv x = refl
+
+PairInt-sum-left-equiv : ∀ a b → ≡PairInt ⟨ a - a + b ⟩ ⟨ zero - b ⟩
+PairInt-sum-left-equiv a b rewrite +-comm (a + b) 0 = refl
+
+data EnumInt : Set where
+  ℤ₊ : ℕ → EnumInt
+  ℤ₀ : EnumInt
+  ℤ₋ : ℕ → EnumInt
+
+PairInt→EnumInt : PairInt → EnumInt
+PairInt→EnumInt ⟨ zero - zero ⟩ = ℤ₀
+PairInt→EnumInt ⟨ zero - suc y ⟩ = ℤ₋ y
+PairInt→EnumInt ⟨ suc x - zero ⟩ = ℤ₊ x
+PairInt→EnumInt ⟨ suc x - suc y ⟩ = PairInt→EnumInt ⟨ x - y ⟩
+
+PairInt→EnumInt-refl : ∀ x → PairInt→EnumInt ⟨ x - x ⟩ ≡ ℤ₀
+PairInt→EnumInt-refl zero = refl
+PairInt→EnumInt-refl (suc x) = PairInt→EnumInt-refl x
+
+PairInt→EnumInt-right-sum : ∀ x y → PairInt→EnumInt ⟨ x - x + suc y ⟩ ≡ ℤ₋ y
+PairInt→EnumInt-right-sum zero y = refl
+PairInt→EnumInt-right-sum (suc x) y = PairInt→EnumInt-right-sum x y
+
+PairInt→EnumInt-left-sum : ∀ x y → PairInt→EnumInt ⟨ suc x + y - y ⟩ ≡ ℤ₊ x
+PairInt→EnumInt-left-sum x zero rewrite +-comm x 0 = refl
+PairInt→EnumInt-left-sum x (suc y) rewrite +-suc x y =
+  PairInt→EnumInt-left-sum x y
+
+pi-ei-sound :
+  (a b : PairInt) → ≡PairInt a b → PairInt→EnumInt a ≡ PairInt→EnumInt b
+pi-ei-sound ⟨ zero - zero ⟩ ⟨ c - d ⟩ a+d≡b+c
+  rewrite a+d≡b+c | PairInt→EnumInt-refl c = refl
+pi-ei-sound ⟨ zero - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c
+  rewrite +-comm (suc b) c | a+d≡b+c | PairInt→EnumInt-right-sum c b = refl
+pi-ei-sound ⟨ suc a - zero ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite sym a+d≡b+c =
+  sym (PairInt→EnumInt-left-sum a d)
+pi-ei-sound ⟨ suc a - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c =
+  pi-ei-sound ⟨ a - b ⟩ ⟨ c - d ⟩ (suc-injective a+d≡b+c)
+
+PairInt-EnumInt-Prequotient : Prequotient PairInt-Setoid
+PairInt-EnumInt-Prequotient =
+  record { Q = EnumInt ; [_] = PairInt→EnumInt ; sound = pi-ei-sound }
