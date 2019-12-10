@@ -81,8 +81,9 @@ PairInt-Setoid : Setoid
 PairInt-Setoid =
   record { A = PairInt ; _≈_ = ≡PairInt ; isEquiv = ≡PairInt-IsEquiv }
 
-record Prequotient (S : Setoid) : Set₁ where
-  open Setoid S
+record Prequotient : Set₁ where
+  field S : Setoid
+  open Setoid S public
   field
     Q : Set
     [_] : A → Q
@@ -129,6 +130,33 @@ pi-ei-sound ⟨ suc a - zero ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite sym a+d≡b+c =
 pi-ei-sound ⟨ suc a - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c =
   pi-ei-sound ⟨ a - b ⟩ ⟨ c - d ⟩ (suc-injective a+d≡b+c)
 
-PairInt-EnumInt-Prequotient : Prequotient PairInt-Setoid
+PairInt-EnumInt-Prequotient : Prequotient
 PairInt-EnumInt-Prequotient =
-  record { Q = EnumInt ; [_] = PairInt→EnumInt ; sound = pi-ei-sound }
+  record
+    { S = PairInt-Setoid
+    ; Q = EnumInt
+    ; [_] = PairInt→EnumInt
+    ; sound = pi-ei-sound
+    }
+
+_≃⟨_⟩_ :
+  {A : Set} {B : A → Set} {a a′ : A} (b : B a) (p : a ≡ a′) (b′ : B a′) → Set
+b ≃⟨ refl ⟩ b′ = b ≡ b′
+
+record Quotient : Set₁ where
+  field PQ : Prequotient
+  open Prequotient PQ public
+  field
+    qelim :
+      (B : Q → Set) →
+      (f : (a : A) → B [ a ]) →
+      (∀ a b → (p : a ≈ b) → _≃⟨_⟩_ {B = B} (f a) (sound a b p) (f b)) →
+      (q : Q) →
+      B q
+    qelim-β : ∀ B f p a → qelim B f p [ a ] ≡ f a
+
+record ExactQuotient : Set₁ where
+  field QQ : Quotient
+  open Quotient QQ public
+  field
+    exact : ∀ a b → [ a ] ≡ [ b ] → a ≈ b
