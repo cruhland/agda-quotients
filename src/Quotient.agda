@@ -3,10 +3,11 @@ module Quotient where
 open import Data.Nat
 open import Data.Nat.Properties
 open import Data.Product
-open import Level renaming (zero to lzero; suc to lsuc)
+open import Level hiding (lift) renaming (zero to lzero; suc to lsuc)
 open import Relation.Binary.PropositionalEquality hiding ([_])
-
 open import Algebra.Solver.CommutativeMonoid +-0-commutativeMonoid
+
+open ≡-Reasoning
 
 MultiArgFn :
   {ℓ : Level} (arity : ℕ) (argType : Set) (resultType : Set ℓ) → Set ℓ
@@ -84,10 +85,16 @@ PairInt-Setoid =
 record Prequotient : Set₁ where
   field S : Setoid
   open Setoid S public
+
   field
     Q : Set
     [_] : A → Q
-    sound : (a b : A) → a ≈ b → [ a ] ≡ [ b ]
+
+  compat : {B : Set} → (f : A → B) → Set
+  compat f = ∀ {x y} → x ≈ y → f x ≡ f y
+
+  field
+    sound : compat [_]
 
 PairInt-refl-equiv : ∀ x → ≡PairInt ⟨ x - x ⟩ ⟨ zero - zero ⟩
 PairInt-refl-equiv x = refl
@@ -136,12 +143,14 @@ PairInt-EnumInt-Prequotient =
     { S = PairInt-Setoid
     ; Q = EnumInt
     ; [_] = PairInt→EnumInt
-    ; sound = pi-ei-sound
+    ; sound = λ {x y} → pi-ei-sound x y
     }
 
-_≃⟨_⟩_ :
-  {A : Set} {B : A → Set} {a a′ : A} (b : B a) (p : a ≡ a′) (b′ : B a′) → Set
-b ≃⟨ refl ⟩ b′ = b ≡ b′
+module _ {PQ : Prequotient} where
+  open Prequotient PQ
+
+  compat₂ : {B : Q → Set} → (f : (a : A) → B [ a ]) → Set
+  compat₂ {B} f = ∀ {x y} → (r : x ≈ y) → subst B (sound r) (f x) ≡ f y
 
 record Quotient : Set₁ where
   field PQ : Prequotient
@@ -150,13 +159,100 @@ record Quotient : Set₁ where
     qelim :
       (B : Q → Set) →
       (f : (a : A) → B [ a ]) →
-      (∀ a b → (p : a ≈ b) → _≃⟨_⟩_ {B = B} (f a) (sound a b p) (f b)) →
+      compat₂ {PQ} {B} f →
       (q : Q) →
       B q
-    qelim-β : ∀ B f p a → qelim B f p [ a ] ≡ f a
+    qelim-β : ∀ B f → (c : compat₂ {PQ} f) → ∀ a → qelim B f c [ a ] ≡ f a
 
 record ExactQuotient : Set₁ where
   field QQ : Quotient
   open Quotient QQ public
   field
-    exact : ∀ a b → [ a ] ≡ [ b ] → a ≈ b
+    exact : ∀ {x y} → [ x ] ≡ [ y ] → x ≈ y
+
+record AltQuotient : Set₁ where
+  field PQ : Prequotient
+  open Prequotient PQ public
+  field
+    lift : {B : Set} (f : A → B) → compat f → Q → B
+    lift-β : ∀ {B} f x → (A≈→B≡ : compat f) → lift {B} f A≈→B≡ [ x ] ≡ f x
+    qind : (C : Q → Set) → (∀ x → C [ x ]) → (q : Q) → C q
+
+cong-Σ :
+  {A : Set} {B : A → Set} {a a′ : A} {b : B a} {b′ : B a′} →
+  (p : a ≡ a′) →
+  subst B p b ≡ b′ →
+  (a , b) ≡ (a′ , b′)
+cong-Σ refl refl = refl
+
+proj₁-≡ :
+  {A : Set} {B : A → Set} {p₁ p₂ : Σ A B} → p₁ ≡ p₂ → proj₁ p₁ ≡ proj₁ p₂
+proj₁-≡ refl = refl
+
+proj₂-≡ :
+  {A : Set} {B : A → Set} {p₁ p₂ : Σ A B} →
+  (eq : p₁ ≡ p₂) →
+  subst B (proj₁-≡ eq) (proj₂ p₁) ≡ proj₂ p₂
+proj₂-≡ refl = refl
+
+≡-irr : {A : Set} {a a′ : A} (eq₁ eq₂ : a ≡ a′) → eq₁ ≡ eq₂
+≡-irr refl refl = refl
+
+subst-irr :
+  {A : Set} {B : A → Set} {a a′ : A} {b : B a} (eq₁ eq₂ : a ≡ a′) →
+  subst B eq₁ b ≡ subst B eq₂ b
+subst-irr eq₁ eq₂ rewrite ≡-irr eq₁ eq₂ = refl
+
+module _ (AQ : AltQuotient) where
+  open AltQuotient AQ using (PQ; lift; lift-β; qind)
+  open Prequotient PQ
+
+  module _ (P : Q → Set) (p : (x : A) → P [ x ]) (A≈→P≡ : compat₂ {PQ} p) where
+    U : Set
+    U = Σ Q P
+
+    p′ : A → U
+    p′ x′ = [ x′ ] , p x′
+
+    compat-p′ : compat p′
+    compat-p′ x≈y = cong-Σ (sound x≈y) (A≈→P≡ x≈y)
+
+    liftU : Q → U
+    liftU = lift p′ compat-p′
+
+    liftU-β : ∀ x → liftU [ x ] ≡ p′ x
+    liftU-β x = lift-β p′ x compat-p′
+
+    proj₁-liftU-id : Q → Set
+    proj₁-liftU-id c = proj₁ (liftU c) ≡ c
+
+    proj₁U→Q : (c : Q) → proj₁-liftU-id c
+    proj₁U→Q = qind proj₁-liftU-id λ x → cong proj₁ (liftU-β x)
+
+    qelim₁ : (c : Q) → P c
+    qelim₁ c = subst P (proj₁U→Q c) (proj₂ (liftU c))
+
+    proj₁-liftU-β : ∀ x → proj₁ (liftU [ x ]) ≡ proj₁ (p′ x)
+    proj₁-liftU-β x = proj₁-≡ (liftU-β x)
+
+    proj₂-liftU-β :
+      ∀ x → subst P (proj₁-liftU-β x) (proj₂ (liftU [ x ])) ≡ proj₂ (p′ x)
+    proj₂-liftU-β x = proj₂-≡ (liftU-β x)
+
+    qelim-β₁ : ∀ x → qelim₁ [ x ] ≡ p x
+    qelim-β₁ x =
+      begin
+        qelim₁ [ x ]
+      ≡⟨⟩
+        subst P (proj₁U→Q [ x ]) (proj₂ (liftU [ x ]))
+      ≡⟨ subst-irr (proj₁U→Q [ x ]) (proj₁-liftU-β x) ⟩
+        subst P (proj₁-liftU-β x) (proj₂ (liftU [ x ]))
+      ≡⟨ proj₂-liftU-β x ⟩
+        proj₂ (p′ x)
+      ≡⟨⟩
+        p x
+      ∎
+
+AltQuotient→Quotient : AltQuotient → Quotient
+AltQuotient→Quotient AQ =
+  record { PQ = AltQuotient.PQ AQ ; qelim = qelim₁ AQ ; qelim-β = qelim-β₁ AQ }
