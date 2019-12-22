@@ -1,3 +1,8 @@
+<link rel="stylesheet" type="text/css" href="Agda.css">
+
+# Quotient types in Agda
+
+```agda
 module Quotient where
 
 open import Data.Nat
@@ -256,3 +261,5 @@ module _ (AQ : AltQuotient) where
 AltQuotient→Quotient : AltQuotient → Quotient
 AltQuotient→Quotient AQ =
   record { PQ = AltQuotient.PQ AQ ; qelim = qelim₁ AQ ; qelim-β = qelim-β₁ AQ }
+```
+
