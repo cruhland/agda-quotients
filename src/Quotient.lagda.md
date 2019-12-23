@@ -2,6 +2,11 @@
 
 # Quotient types in Agda
 
+This article attempts to explain how quotient types work in Agda. The
+code is adapted from the paper [Definable Quotients in Type
+Theory](http://www.cs.nott.ac.uk/~psztxa/publ/defquotients.pdf) by
+Altenkirch, Anberrée, and Li.
+
 ```agda
 module Quotient where
 
@@ -263,3 +268,10 @@ AltQuotient→Quotient AQ =
   record { PQ = AltQuotient.PQ AQ ; qelim = qelim₁ AQ ; qelim-β = qelim-β₁ AQ }
 ```
 
+## Further reading
+
+Here are some sources that helped me out while I was writing this:
+
+1. [Equivalence
+   class](https://en.wikipedia.org/wiki/Equivalence_class), Wikipedia.
+1. [Quotient Types for Programmers](https://www.hedonisticlearning.com/posts/quotient-types-for-programmers.html), by Derek Elkins.
