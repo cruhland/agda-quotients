@@ -7,6 +7,8 @@ code is adapted from the paper [Definable Quotients in Type
 Theory](http://www.cs.nott.ac.uk/~psztxa/publ/defquotients.pdf) by
 Altenkirch, Anberrée, and Li.
 
+We start with the module declaration and imports, as required by Agda:
+
 ```agda
 module Quotient where
 
@@ -18,7 +20,89 @@ open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Algebra.Solver.CommutativeMonoid +-0-commutativeMonoid
 
 open ≡-Reasoning
+```
 
+Don't worry too much about why these specific imports are needed; I'll
+refer back to them when they're actually referenced in what follows.
+
+So, what is a quotient type? Frequently when modeling a concept in
+Agda, there are multiple data types that do the job, but one may be
+better to use than another in certain contexts. In particular, one
+representation may exactly capture the elements of the domain, such
+that propositional equality on the data type corresponds with the
+notion of equality for the concept being modeled; while another
+representation may be easier to work with, but at the cost of having
+redundant elements which prevent the meaningful usage of
+equality. Quotient types (or just _quotients_ for short) allow us to
+convert between the two representations and use the one that's most
+convenient for the task at hand.
+
+A specific example will help illustrate. Suppose we'd like to model
+the integers as an Agda data type. In our first attempt, we want
+propositional equality over the data type to correspond with actual
+equality between integers, so we'd write something like this:
+
+```agda
+data ℤ₁ : Set where
+  ℤ₊ : ℕ → ℤ₁
+  ℤ₀ : ℤ₁
+  ℤ₋ : ℕ → ℤ₁
+```
+
+This representation relies on ℕ's propositional equality to ensure
+that there is exactly one term of `ℤ₁` for each integer (hence
+justifying the subscript `1`). The constructors `ℤ₊` and `ℤ₋`
+represent the positive and negative integers, respectively, and accept
+as argument the predecessor of the corresponding natural number; for
+example, -3 is represented as `ℤ₋ (suc (suc zero))`.
+
+We could have used a similar representation with only two constructors
+(representing the nonnegative integers and strictly negative
+integers), but the symmetry of the above definition is conceptually
+clearer. Unfortunately this clarity doesn't extend to functions defined over this data type. Consider addition:
+
+```agda
+_+₁_ : ℤ₁ → ℤ₁ → ℤ₁
+ℤ₊ n₊ +₁ ℤ₊ m₊ = ℤ₊ (suc (n₊ + m₊))
+ℤ₊ n₊ +₁ ℤ₀ = ℤ₊ n₊
+ℤ₊ zero +₁ ℤ₋ zero = ℤ₀
+ℤ₊ zero +₁ ℤ₋ (suc m₋) = ℤ₋ m₋
+ℤ₊ (suc n₊) +₁ ℤ₋ zero = ℤ₊ n₊
+ℤ₊ (suc n₊) +₁ ℤ₋ (suc m₋) = (ℤ₊ n₊) +₁ (ℤ₋ m₋)
+ℤ₀ +₁ y = y
+ℤ₋ n₋ +₁ ℤ₋ m₋ = ℤ₋ (suc (n₋ + m₋))
+ℤ₋ n₋ +₁ ℤ₀ = ℤ₋ n₋
+ℤ₋ zero +₁ ℤ₊ zero = ℤ₀
+ℤ₋ zero +₁ ℤ₊ (suc m₊) = ℤ₊ m₊
+ℤ₋ (suc n₋) +₁ ℤ₊ zero = ℤ₋ n₋
+ℤ₋ (suc n₋) +₁ ℤ₊ (suc m₊) = (ℤ₋ n₋) +₁ (ℤ₊ m₊)
+```
+
+What a mess! It's hard to tell whether this implementation is
+correct. And trying to prove correctness or other properties of this
+function would be a nightmare with all the cases that would need to be
+considered. Do we just have to grit our teeth and slog through it?
+
+No! If we pick a different representation, defining integer addition
+is a breeze:
+
+```agda
+data ℤ₂ : Set where
+  ⟨_-_⟩ : ℕ → ℕ → ℤ₂
+
+_+₂_ : ℤ₂ → ℤ₂ → ℤ₂
+⟨ n₁ - n₂ ⟩ +₂ ⟨ m₁ - m₂ ⟩ = ⟨ n₁ + m₁ - n₂ + m₂ ⟩
+```
+
+By denoting an integer as the difference of two natural numbers, `ℤ₂`
+is much easier to work with. For example, the definition of `_+₂_` is
+an easy consequence of the rules of algebra! But it comes at a cost:
+there are many terms that are not propositionally equal that still
+represent the same integer (e.g. `⟨ 3 - 5 ⟩`, `⟨ 2 - 4 ⟩`, and `⟨ 0 -
+2 ⟩` all denote -2). Do we just have to give up on using the `_≡_`
+relation on elements of `ℤ₂`?
+
+```agda
 MultiArgFn :
   {ℓ : Level} (arity : ℕ) (argType : Set) (resultType : Set ℓ) → Set ℓ
 MultiArgFn zero a r = r
@@ -30,11 +114,8 @@ Relation arity A = MultiArgFn arity A Set
 Rel₂ : (A : Set) → Set₁
 Rel₂ A = Relation 2 A
 
-data PairInt : Set where
-  ⟨_-_⟩ : ℕ → ℕ → PairInt
-
-≡PairInt : Rel₂ PairInt
-≡PairInt ⟨ a - b ⟩ ⟨ c - d ⟩ = a + d ≡ b + c
+≡ℤ₂ : Rel₂ ℤ₂
+≡ℤ₂ ⟨ a - b ⟩ ⟨ c - d ⟩ = a + d ≡ b + c
 
 Reflexive : {A : Set} (_≈_ : Rel₂ A) → Set
 Reflexive _≈_ = ∀ x → x ≈ x
@@ -51,11 +132,11 @@ record IsEquivalence {A : Set} (_≈_ : Rel₂ A) : Set where
     symmetric : Symmetric _≈_
     transitive : Transitive _≈_
 
-≡PairInt-refl : Reflexive ≡PairInt
-≡PairInt-refl ⟨ a - b ⟩ = +-comm a b
+≡ℤ₂-refl : Reflexive ≡ℤ₂
+≡ℤ₂-refl ⟨ a - b ⟩ = +-comm a b
 
-≡PairInt-sym : Symmetric ≡PairInt
-≡PairInt-sym ⟨ a - b ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite +-comm a d | +-comm b c =
+≡ℤ₂-sym : Symmetric ≡ℤ₂
+≡ℤ₂-sym ⟨ a - b ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite +-comm a d | +-comm b c =
   sym a+d≡b+c
 
 trans-lemma : (w x y z : ℕ) → (w + x) + (y + z) ≡ (w + z) + (x + y)
@@ -65,20 +146,20 @@ trans-lemma w x y z =
 +-preserves-≡ : {a b c d : ℕ} → a ≡ b → c ≡ d → a + c ≡ b + d
 +-preserves-≡ refl refl = refl
 
-≡PairInt-trans : Transitive ≡PairInt
-≡PairInt-trans ⟨ a - b ⟩ ⟨ c - d ⟩ ⟨ e - f ⟩ a-b≡c-d c-d≡e-f =
+≡ℤ₂-trans : Transitive ≡ℤ₂
+≡ℤ₂-trans ⟨ a - b ⟩ ⟨ c - d ⟩ ⟨ e - f ⟩ a-b≡c-d c-d≡e-f =
   let ≡-sum = +-preserves-≡ a-b≡c-d c-d≡e-f
       ≡-left = trans (trans-lemma a d c f) (cong ((a + f) +_) (+-comm d c))
       ≡-right = trans-lemma b c d e
       ≡-combined = trans (sym ≡-left) (trans ≡-sum ≡-right)
    in +-cancelʳ-≡ (a + f) (b + e) ≡-combined
 
-≡PairInt-IsEquiv : IsEquivalence ≡PairInt
-≡PairInt-IsEquiv =
+≡ℤ₂-IsEquiv : IsEquivalence ≡ℤ₂
+≡ℤ₂-IsEquiv =
   record
-    { reflexive = ≡PairInt-refl
-    ; symmetric = ≡PairInt-sym
-    ; transitive = ≡PairInt-trans
+    { reflexive = ≡ℤ₂-refl
+    ; symmetric = ≡ℤ₂-sym
+    ; transitive = ≡ℤ₂-trans
     }
 
 -- A setoid is a set A equipped with an equivalence relation _≈_
@@ -88,9 +169,9 @@ record Setoid : Set₁ where
     _≈_ : Rel₂ A
     isEquiv : IsEquivalence _≈_
 
-PairInt-Setoid : Setoid
-PairInt-Setoid =
-  record { A = PairInt ; _≈_ = ≡PairInt ; isEquiv = ≡PairInt-IsEquiv }
+ℤ₂-Setoid : Setoid
+ℤ₂-Setoid =
+  record { A = ℤ₂ ; _≈_ = ≡ℤ₂ ; isEquiv = ≡ℤ₂-IsEquiv }
 
 record Prequotient : Set₁ where
   field S : Setoid
@@ -106,53 +187,48 @@ record Prequotient : Set₁ where
   field
     sound : compat [_]
 
-PairInt-refl-equiv : ∀ x → ≡PairInt ⟨ x - x ⟩ ⟨ zero - zero ⟩
-PairInt-refl-equiv x = refl
+ℤ₂-refl-equiv : ∀ x → ≡ℤ₂ ⟨ x - x ⟩ ⟨ zero - zero ⟩
+ℤ₂-refl-equiv x = refl
 
-PairInt-sum-left-equiv : ∀ a b → ≡PairInt ⟨ a - a + b ⟩ ⟨ zero - b ⟩
-PairInt-sum-left-equiv a b rewrite +-comm (a + b) 0 = refl
+ℤ₂-sum-left-equiv : ∀ a b → ≡ℤ₂ ⟨ a - a + b ⟩ ⟨ zero - b ⟩
+ℤ₂-sum-left-equiv a b rewrite +-comm (a + b) 0 = refl
 
-data EnumInt : Set where
-  ℤ₊ : ℕ → EnumInt
-  ℤ₀ : EnumInt
-  ℤ₋ : ℕ → EnumInt
+ℤ₂→ℤ₁ : ℤ₂ → ℤ₁
+ℤ₂→ℤ₁ ⟨ zero - zero ⟩ = ℤ₀
+ℤ₂→ℤ₁ ⟨ zero - suc y ⟩ = ℤ₋ y
+ℤ₂→ℤ₁ ⟨ suc x - zero ⟩ = ℤ₊ x
+ℤ₂→ℤ₁ ⟨ suc x - suc y ⟩ = ℤ₂→ℤ₁ ⟨ x - y ⟩
 
-PairInt→EnumInt : PairInt → EnumInt
-PairInt→EnumInt ⟨ zero - zero ⟩ = ℤ₀
-PairInt→EnumInt ⟨ zero - suc y ⟩ = ℤ₋ y
-PairInt→EnumInt ⟨ suc x - zero ⟩ = ℤ₊ x
-PairInt→EnumInt ⟨ suc x - suc y ⟩ = PairInt→EnumInt ⟨ x - y ⟩
+ℤ₂→ℤ₁-refl : ∀ x → ℤ₂→ℤ₁ ⟨ x - x ⟩ ≡ ℤ₀
+ℤ₂→ℤ₁-refl zero = refl
+ℤ₂→ℤ₁-refl (suc x) = ℤ₂→ℤ₁-refl x
 
-PairInt→EnumInt-refl : ∀ x → PairInt→EnumInt ⟨ x - x ⟩ ≡ ℤ₀
-PairInt→EnumInt-refl zero = refl
-PairInt→EnumInt-refl (suc x) = PairInt→EnumInt-refl x
+ℤ₂→ℤ₁-right-sum : ∀ x y → ℤ₂→ℤ₁ ⟨ x - x + suc y ⟩ ≡ ℤ₋ y
+ℤ₂→ℤ₁-right-sum zero y = refl
+ℤ₂→ℤ₁-right-sum (suc x) y = ℤ₂→ℤ₁-right-sum x y
 
-PairInt→EnumInt-right-sum : ∀ x y → PairInt→EnumInt ⟨ x - x + suc y ⟩ ≡ ℤ₋ y
-PairInt→EnumInt-right-sum zero y = refl
-PairInt→EnumInt-right-sum (suc x) y = PairInt→EnumInt-right-sum x y
-
-PairInt→EnumInt-left-sum : ∀ x y → PairInt→EnumInt ⟨ suc x + y - y ⟩ ≡ ℤ₊ x
-PairInt→EnumInt-left-sum x zero rewrite +-comm x 0 = refl
-PairInt→EnumInt-left-sum x (suc y) rewrite +-suc x y =
-  PairInt→EnumInt-left-sum x y
+ℤ₂→ℤ₁-left-sum : ∀ x y → ℤ₂→ℤ₁ ⟨ suc x + y - y ⟩ ≡ ℤ₊ x
+ℤ₂→ℤ₁-left-sum x zero rewrite +-comm x 0 = refl
+ℤ₂→ℤ₁-left-sum x (suc y) rewrite +-suc x y =
+  ℤ₂→ℤ₁-left-sum x y
 
 pi-ei-sound :
-  (a b : PairInt) → ≡PairInt a b → PairInt→EnumInt a ≡ PairInt→EnumInt b
+  (a b : ℤ₂) → ≡ℤ₂ a b → ℤ₂→ℤ₁ a ≡ ℤ₂→ℤ₁ b
 pi-ei-sound ⟨ zero - zero ⟩ ⟨ c - d ⟩ a+d≡b+c
-  rewrite a+d≡b+c | PairInt→EnumInt-refl c = refl
+  rewrite a+d≡b+c | ℤ₂→ℤ₁-refl c = refl
 pi-ei-sound ⟨ zero - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c
-  rewrite +-comm (suc b) c | a+d≡b+c | PairInt→EnumInt-right-sum c b = refl
+  rewrite +-comm (suc b) c | a+d≡b+c | ℤ₂→ℤ₁-right-sum c b = refl
 pi-ei-sound ⟨ suc a - zero ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite sym a+d≡b+c =
-  sym (PairInt→EnumInt-left-sum a d)
+  sym (ℤ₂→ℤ₁-left-sum a d)
 pi-ei-sound ⟨ suc a - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c =
   pi-ei-sound ⟨ a - b ⟩ ⟨ c - d ⟩ (suc-injective a+d≡b+c)
 
-PairInt-EnumInt-Prequotient : Prequotient
-PairInt-EnumInt-Prequotient =
+ℤ₂-ℤ₁-Prequotient : Prequotient
+ℤ₂-ℤ₁-Prequotient =
   record
-    { S = PairInt-Setoid
-    ; Q = EnumInt
-    ; [_] = PairInt→EnumInt
+    { S = ℤ₂-Setoid
+    ; Q = ℤ₁
+    ; [_] = ℤ₂→ℤ₁
     ; sound = λ {x y} → pi-ei-sound x y
     }
 
