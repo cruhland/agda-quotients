@@ -98,39 +98,76 @@ By denoting an integer as the difference of two natural numbers, `ℤ₂`
 is much easier to work with. For example, the definition of `_+₂_` is
 an easy consequence of the rules of algebra! But it comes at a cost:
 there are many terms that are not propositionally equal that still
-represent the same integer (e.g. `⟨ 3 - 5 ⟩`, `⟨ 2 - 4 ⟩`, and `⟨ 0 -
-2 ⟩` all denote -2). Do we just have to give up on using the `_≡_`
+represent the same integer (e.g. `⟨ 2 - 5 ⟩`, `⟨ 1 - 4 ⟩`, and `⟨ 0 -
+3 ⟩` all denote -3). Do we just have to give up on using the `_≡_`
 relation on elements of `ℤ₂`?
 
+Well, technically yes, but for practical purposes no. We can use `ℤ₂`
+for writing functions and proving properties, and `ℤ₁` for comparisons
+and enumeration, with a quotient construction. The main idea is to
+map, or label, each `ℤ₂` value with the unique `ℤ₁` value that denotes
+the same integer. A more mathematical way to phrase it would be that
+we're partitioning `ℤ₂` into [_equivalence
+classes_](https://en.wikipedia.org/wiki/Equivalence_class), with each
+class having a canonical representative in `ℤ₁`.
+
+As a first step, we have to define what it means for two `ℤ₂` terms to
+represent the same integer, that is, we need an [_equivalence
+relation_](https://en.wikipedia.org/wiki/Equivalence_relation). The
+first sentence of that Wikipedia page describes exacatly what is
+needed: "an equivalence relation is a binary relation that is
+reflexive, symmetric and transitive". Let's formalize that in Agda!
+
 ```agda
-MultiArgFn :
-  {ℓ : Level} (arity : ℕ) (argType : Set) (resultType : Set ℓ) → Set ℓ
-MultiArgFn zero a r = r
-MultiArgFn (suc n) a r = MultiArgFn n a (a → r)
-
-Relation : (arity : ℕ) (A : Set) → Set₁
-Relation arity A = MultiArgFn arity A Set
-
 Rel₂ : (A : Set) → Set₁
-Rel₂ A = Relation 2 A
+Rel₂ A = A → A → Set
 
-≡ℤ₂ : Rel₂ ℤ₂
-≡ℤ₂ ⟨ a - b ⟩ ⟨ c - d ⟩ = a + d ≡ b + c
+Reflexive : {A : Set} (_∼_ : Rel₂ A) → Set
+Reflexive _∼_ = ∀ x → x ∼ x
 
-Reflexive : {A : Set} (_≈_ : Rel₂ A) → Set
-Reflexive _≈_ = ∀ x → x ≈ x
+Symmetric : {A : Set} (_∼_ : Rel₂ A) → Set
+Symmetric _∼_ = ∀ x y → x ∼ y → y ∼ x
 
-Symmetric : {A : Set} (_≈_ : Rel₂ A) → Set
-Symmetric _≈_ = ∀ x y → x ≈ y → y ≈ x
-
-Transitive : {A : Set} (_≈_ : Rel₂ A) → Set
-Transitive _≈_ = ∀ x y z → x ≈ y → y ≈ z → x ≈ z
+Transitive : {A : Set} (_∼_ : Rel₂ A) → Set
+Transitive _∼_ = ∀ x y z → x ∼ y → y ∼ z → x ∼ z
 
 record IsEquivalence {A : Set} (_≈_ : Rel₂ A) : Set where
   field
     reflexive : Reflexive _≈_
     symmetric : Symmetric _≈_
     transitive : Transitive _≈_
+```
+
+We first create a shorthand `Rel₂` for binary relations on a set `A`,
+since we'll need to refer to them in the subsequent definitions. Next,
+we define the properties that an equivalence relation must satisfy:
+
+1. reflexivity: all elements are equivalent to themselves;
+1. symmetry: equivalence is mutual, like friendship (it goes both
+   ways);
+1. transitivity: equivalence is "viral", like the property of being
+   related to a person (elements that are equivalent to some element
+   are equivalent to each other).
+
+Finally we package the properties up into a convenient record type
+that captures exactly what it means for some arbitrary binary relation
+`_≈_` to be an equivalence relation. All of these definitions can be
+found in the Agda standard library; I didn't use them here because
+they are more general and therefore harder to explain. But please
+click on the imports below if you're interested in learning more.
+
+```agda
+module _ where
+  import Relation.Binary
+    using (Reflexive; Symmetric; Transitive; IsEquivalence)
+```
+
+Now let's prove that there's an equivalence relation on `ℤ₂` that does
+what we want!
+
+```agda
+≡ℤ₂ : Rel₂ ℤ₂
+≡ℤ₂ ⟨ a - b ⟩ ⟨ c - d ⟩ = a + d ≡ b + c
 
 ≡ℤ₂-refl : Reflexive ≡ℤ₂
 ≡ℤ₂-refl ⟨ a - b ⟩ = +-comm a b
@@ -349,5 +386,10 @@ AltQuotient→Quotient AQ =
 Here are some sources that helped me out while I was writing this:
 
 1. [Equivalence
+   relation](https://en.wikipedia.org/wiki/Equivalence_relation),
+   Wikipedia.
+1. [Equivalence
    class](https://en.wikipedia.org/wiki/Equivalence_class), Wikipedia.
-1. [Quotient Types for Programmers](https://www.hedonisticlearning.com/posts/quotient-types-for-programmers.html), by Derek Elkins.
+1. [Quotient Types for
+   Programmers](https://www.hedonisticlearning.com/posts/quotient-types-for-programmers.html),
+   by Derek Elkins.
