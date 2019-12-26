@@ -50,11 +50,11 @@ data ℤ₁ : Set where
 ```
 
 This representation relies on ℕ's propositional equality to ensure
-that there is exactly one term of `ℤ₁` for each integer (hence
-justifying the subscript `1`). The constructors `ℤ₊` and `ℤ₋`
-represent the positive and negative integers, respectively, and accept
-as argument the predecessor of the corresponding natural number; for
-example, -3 is represented as `ℤ₋ (suc (suc zero))`.
+that there is exactly one term of `ℤ₁` for each integer. The
+constructors `ℤ₊` and `ℤ₋` represent the positive and negative
+integers, respectively, and accept as argument the predecessor of the
+corresponding natural number; for example, -3 is represented as `ℤ₋
+(suc (suc zero))`.
 
 We could have used a similar representation with only two constructors
 (representing the nonnegative integers and strictly negative
@@ -63,19 +63,19 @@ clearer. Unfortunately this clarity doesn't extend to functions defined over thi
 
 ```agda
 _+₁_ : ℤ₁ → ℤ₁ → ℤ₁
-ℤ₊ n₊ +₁ ℤ₊ m₊ = ℤ₊ (suc (n₊ + m₊))
-ℤ₊ n₊ +₁ ℤ₀ = ℤ₊ n₊
+ℤ₊ a₊ +₁ ℤ₊ b₊ = ℤ₊ (suc (a₊ + b₊))
+ℤ₊ a₊ +₁ ℤ₀ = ℤ₊ a₊
 ℤ₊ zero +₁ ℤ₋ zero = ℤ₀
-ℤ₊ zero +₁ ℤ₋ (suc m₋) = ℤ₋ m₋
-ℤ₊ (suc n₊) +₁ ℤ₋ zero = ℤ₊ n₊
-ℤ₊ (suc n₊) +₁ ℤ₋ (suc m₋) = (ℤ₊ n₊) +₁ (ℤ₋ m₋)
+ℤ₊ zero +₁ ℤ₋ (suc b₋) = ℤ₋ b₋
+ℤ₊ (suc a₊) +₁ ℤ₋ zero = ℤ₊ a₊
+ℤ₊ (suc a₊) +₁ ℤ₋ (suc b₋) = (ℤ₊ a₊) +₁ (ℤ₋ b₋)
 ℤ₀ +₁ y = y
-ℤ₋ n₋ +₁ ℤ₋ m₋ = ℤ₋ (suc (n₋ + m₋))
-ℤ₋ n₋ +₁ ℤ₀ = ℤ₋ n₋
+ℤ₋ a₋ +₁ ℤ₋ b₋ = ℤ₋ (suc (a₋ + b₋))
+ℤ₋ a₋ +₁ ℤ₀ = ℤ₋ a₋
 ℤ₋ zero +₁ ℤ₊ zero = ℤ₀
-ℤ₋ zero +₁ ℤ₊ (suc m₊) = ℤ₊ m₊
-ℤ₋ (suc n₋) +₁ ℤ₊ zero = ℤ₋ n₋
-ℤ₋ (suc n₋) +₁ ℤ₊ (suc m₊) = (ℤ₋ n₋) +₁ (ℤ₊ m₊)
+ℤ₋ zero +₁ ℤ₊ (suc b₊) = ℤ₊ b₊
+ℤ₋ (suc a₋) +₁ ℤ₊ zero = ℤ₋ a₋
+ℤ₋ (suc a₋) +₁ ℤ₊ (suc b₊) = (ℤ₋ a₋) +₁ (ℤ₊ b₊)
 ```
 
 What a mess! It's hard to tell whether this implementation is
@@ -91,7 +91,7 @@ data ℤ₂ : Set where
   ⟨_-_⟩ : ℕ → ℕ → ℤ₂
 
 _+₂_ : ℤ₂ → ℤ₂ → ℤ₂
-⟨ n₁ - n₂ ⟩ +₂ ⟨ m₁ - m₂ ⟩ = ⟨ n₁ + m₁ - n₂ + m₂ ⟩
+⟨ a₁ - a₂ ⟩ +₂ ⟨ b₁ - b₂ ⟩ = ⟨ a₁ + b₁ - a₂ + b₂ ⟩
 ```
 
 By denoting an integer as the difference of two natural numbers, `ℤ₂`
@@ -162,43 +162,139 @@ module _ where
     using (Reflexive; Symmetric; Transitive; IsEquivalence)
 ```
 
-Now let's prove that there's an equivalence relation on `ℤ₂` that does
-what we want!
+Now that we've precisely specified what an equivalence relation is, we
+should try to find one for `ℤ₂` that makes all terms that represent
+the same integer equivalent to each other. In mathematical terms, if
+we have integers `a = ⟨ a₁ - a₂ ⟩` and `b = ⟨ b₁ - b₂ ⟩`, then `a = b`
+if and only if (iff) `a₁ - a₂ = b₁ - b₂`. Adding `a₂` and `b₂` to both
+sides to eliminate the subtractions gives us `a₁ + b₂ = a₂ + b₁`,
+which only requires natural number addition. Eureka!
 
 ```agda
-≡ℤ₂ : Rel₂ ℤ₂
-≡ℤ₂ ⟨ a - b ⟩ ⟨ c - d ⟩ = a + d ≡ b + c
+_≈₂_ : Rel₂ ℤ₂
+⟨ a₁ - a₂ ⟩ ≈₂ ⟨ b₁ - b₂ ⟩ = a₁ + b₂ ≡ a₂ + b₁
+```
 
-≡ℤ₂-refl : Reflexive ≡ℤ₂
-≡ℤ₂-refl ⟨ a - b ⟩ = +-comm a b
+Now we need to show that `_≈₂_` is an equivalence relation, i.e. we
+need to construct a value of type `IsEquivalence _≈₂_`. Let's start
+with the first and simplest property, reflexivity:
 
-≡ℤ₂-sym : Symmetric ≡ℤ₂
-≡ℤ₂-sym ⟨ a - b ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite +-comm a d | +-comm b c =
-  sym a+d≡b+c
+```agda
+≈₂-refl : Reflexive _≈₂_
+≈₂-refl ⟨ a₁ - a₂ ⟩ = +-comm a₁ a₂
+```
 
-trans-lemma : (w x y z : ℕ) → (w + x) + (y + z) ≡ (w + z) + (x + y)
-trans-lemma w x y z =
-  solve 4 (λ w x y z → (w ⊕ x) ⊕ (y ⊕ z) ⊜ (w ⊕ z) ⊕ (x ⊕ y)) refl w x y z
+Expanding the definition of `Reflexive`, and pattern matching on the
+lone `ℤ₂` argument, we see that we need to prove `⟨ a₁ - a₂ ⟩ ≈₂ ⟨ a₁
+- a₂ ⟩`. Evaluating `_≈₂_`, we can see this is the same as `a₁ + a₂ ≡
+a₂ + a₁`, which is just the commutative property of `+` on `ℕ`.
 
-+-preserves-≡ : {a b c d : ℕ} → a ≡ b → c ≡ d → a + c ≡ b + d
-+-preserves-≡ refl refl = refl
+Symmetry is slightly more involved:
 
-≡ℤ₂-trans : Transitive ≡ℤ₂
-≡ℤ₂-trans ⟨ a - b ⟩ ⟨ c - d ⟩ ⟨ e - f ⟩ a-b≡c-d c-d≡e-f =
-  let ≡-sum = +-preserves-≡ a-b≡c-d c-d≡e-f
-      ≡-left = trans (trans-lemma a d c f) (cong ((a + f) +_) (+-comm d c))
-      ≡-right = trans-lemma b c d e
-      ≡-combined = trans (sym ≡-left) (trans ≡-sum ≡-right)
-   in +-cancelʳ-≡ (a + f) (b + e) ≡-combined
+```agda
+≈₂-sym : Symmetric _≈₂_
+≈₂-sym ⟨ a₁ - a₂ ⟩ ⟨ b₁ - b₂ ⟩ a₁+b₂≡a₂+b₁ =
+  begin
+    b₁ + a₂
+  ≡⟨ +-comm b₁ a₂ ⟩
+    a₂ + b₁
+  ≡⟨ sym a₁+b₂≡a₂+b₁ ⟩
+    a₁ + b₂
+  ≡⟨ +-comm a₁ b₂ ⟩
+    b₂ + a₁
+  ∎
+```
 
-≡ℤ₂-IsEquiv : IsEquivalence ≡ℤ₂
-≡ℤ₂-IsEquiv =
-  record
-    { reflexive = ≡ℤ₂-refl
-    ; symmetric = ≡ℤ₂-sym
-    ; transitive = ≡ℤ₂-trans
-    }
+To prove symmetry, we're given that `a ≈₂ b` and have to show that `b
+≈₂ a`. After expanding the definitions of `a`, `b`, and `_≈₂_`, this
+means that given `a₁ + b₂ ≡ a₂ + b₁`, we have to show that `b₁ + a₂ ≡
+b₂ + a₁`. The result follows from commutativity.
 
+Transitivity turns out to be way more difficult, and requires some
+lemmas to simplify the main proof. Here's the whole thing; see below
+for an English translation:
+
+```agda
+≈₂-trans : Transitive _≈₂_
+≈₂-trans ⟨ a₁ - a₂ ⟩ ⟨ b₁ - b₂ ⟩ ⟨ c₁ - c₂ ⟩ a₁+b₂≡a₂+b₁ b₁+c₂≡b₂+c₁ =
+  let [a₁+b₂]+[b₁+c₂]≡[a₂+b₁]+[b₂+c₁] = eqn-add a₁+b₂≡a₂+b₁ b₁+c₂≡b₂+c₁
+      [a₁+c₂]+[b₂+b₁]≡[a₂+c₁]+[b₁+b₂] = rearr [a₁+b₂]+[b₁+c₂]≡[a₂+b₁]+[b₂+c₁]
+      a₁+c₂≡a₂+c₁ = cancelʳ [a₁+c₂]+[b₂+b₁]≡[a₂+c₁]+[b₁+b₂] (+-comm b₂ b₁)
+   in a₁+c₂≡a₂+c₁
+  where
+    eqn-add : ∀ {m n p q} → m ≡ n → p ≡ q → m + p ≡ n + q
+    eqn-add refl refl = refl
+
+    cancelʳ : ∀ {m n p q} → m + p ≡ n + q → p ≡ q → m ≡ n
+    cancelʳ {m} {n} sum-eq refl = +-cancelʳ-≡ m n sum-eq
+
+    out-left-in-right :
+      ∀ {m₁ m₂ n₁ n₂} → (m₁ + n₁) + (n₂ + m₂) ≡ (m₁ + m₂) + (n₁ + n₂)
+    out-left-in-right {m₁} {m₂} {n₁} {n₂} =
+      let eqn = λ m₁ m₂ n₁ n₂ → (m₁ ⊕ n₁) ⊕ (n₂ ⊕ m₂) ⊜ (m₁ ⊕ m₂) ⊕ (n₁ ⊕ n₂)
+       in solve 4 eqn refl m₁ m₂ n₁ n₂
+
+    rearr :
+      (a₁ + b₂) + (b₁ + c₂) ≡ (a₂ + b₁) + (b₂ + c₁) →
+      (a₁ + c₂) + (b₂ + b₁) ≡ (a₂ + c₁) + (b₁ + b₂)
+    rearr [a₁+b₂]+[b₁+c₂]≡[a₂+b₁]+[b₂+c₁] =
+      begin
+        (a₁ + c₂) + (b₂ + b₁)
+      ≡⟨ sym (out-left-in-right {a₁}) ⟩
+        (a₁ + b₂) + (b₁ + c₂)
+      ≡⟨ [a₁+b₂]+[b₁+c₂]≡[a₂+b₁]+[b₂+c₁] ⟩
+        (a₂ + b₁) + (b₂ + c₁)
+      ≡⟨ out-left-in-right {a₂} ⟩
+        (a₂ + c₁) + (b₁ + b₂)
+      ∎
+```
+
+Despite all the text required to show it, the reasoning behind this
+proof is straightforward; it's just algebra. As with the proofs of
+reflexivity and symmetry, we start with some integers and relations
+between them: `a`, `b`, and `c`, where `a ≈₂ b` and `b ≈₂ c`. We have
+to show that `a ≈₂ c`. After pattern matching, we name the equivalence
+conditions after their underlying equalities, and our goal is now to
+show that `a₁ + c₂ ≡ a₂ + c₁`.
+
+Looking at the equality arguments to the proof, we see that `a₁` and
+`c₂` each only occur once, and are on the left-hand side of their
+respective equalities; similarly, `a₂` and `c₁` each only occur once,
+but on the right-hand side. Since our goal requires we sum both of
+those pairs, let's just add the two equations together! That produces
+the result of the first line of the proof.
+
+The next two lines are simple algebra. We rearrange terms to group `a`
+and `c` components separately from `b` components. Now the rightmost
+part of each side of the equation is the same value, `b₁ + b₂` (taking
+commutativity into account); thus we can cancel it out and obtain our
+goal.
+
+The lemmas are self-explanatory, except for `out-left-in-right`;
+there, we used an algebra solver to avoid a bunch of tedious rewrites
+involving associativity and commutativity. We imported the solver at
+the top of the file, specifying that we wanted to use the commutative
+monoid of addition with identity element zero, since we're only
+dealing with sums of natural numbers here:
+
+```agda
+module _ where
+  open import Algebra.Solver.CommutativeMonoid +-0-commutativeMonoid
+```
+
+Whew! That's all the proofs; now just glue them together:
+
+```agda
+≈₂-IsEquiv : IsEquivalence _≈₂_
+≈₂-IsEquiv =
+  record { reflexive = ≈₂-refl ; symmetric = ≈₂-sym ; transitive = ≈₂-trans }
+```
+
+Voilà! We've demonstrated that `ℤ₂` can be divided into equivalence
+classes. But how do we relate those equivalence classes to the terms
+of `ℤ₁`?
+
+```agda
 -- A setoid is a set A equipped with an equivalence relation _≈_
 record Setoid : Set₁ where
   field
@@ -208,7 +304,7 @@ record Setoid : Set₁ where
 
 ℤ₂-Setoid : Setoid
 ℤ₂-Setoid =
-  record { A = ℤ₂ ; _≈_ = ≡ℤ₂ ; isEquiv = ≡ℤ₂-IsEquiv }
+  record { A = ℤ₂ ; _≈_ = _≈₂_ ; isEquiv = ≈₂-IsEquiv }
 
 record Prequotient : Set₁ where
   field S : Setoid
@@ -224,10 +320,10 @@ record Prequotient : Set₁ where
   field
     sound : compat [_]
 
-ℤ₂-refl-equiv : ∀ x → ≡ℤ₂ ⟨ x - x ⟩ ⟨ zero - zero ⟩
+ℤ₂-refl-equiv : ∀ x → ⟨ x - x ⟩ ≈₂ ⟨ zero - zero ⟩
 ℤ₂-refl-equiv x = refl
 
-ℤ₂-sum-left-equiv : ∀ a b → ≡ℤ₂ ⟨ a - a + b ⟩ ⟨ zero - b ⟩
+ℤ₂-sum-left-equiv : ∀ a b → ⟨ a - a + b ⟩ ≈₂ ⟨ zero - b ⟩
 ℤ₂-sum-left-equiv a b rewrite +-comm (a + b) 0 = refl
 
 ℤ₂→ℤ₁ : ℤ₂ → ℤ₁
@@ -250,7 +346,7 @@ record Prequotient : Set₁ where
   ℤ₂→ℤ₁-left-sum x y
 
 pi-ei-sound :
-  (a b : ℤ₂) → ≡ℤ₂ a b → ℤ₂→ℤ₁ a ≡ ℤ₂→ℤ₁ b
+  (a b : ℤ₂) → a ≈₂ b → ℤ₂→ℤ₁ a ≡ ℤ₂→ℤ₁ b
 pi-ei-sound ⟨ zero - zero ⟩ ⟨ c - d ⟩ a+d≡b+c
   rewrite a+d≡b+c | ℤ₂→ℤ₁-refl c = refl
 pi-ei-sound ⟨ zero - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c
