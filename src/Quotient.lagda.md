@@ -294,17 +294,38 @@ Voilà! We've demonstrated that `ℤ₂` can be divided into equivalence
 classes. But how do we relate those equivalence classes to the terms
 of `ℤ₁`?
 
+A simple solution would be some function `f : ℤ₂ → ℤ₁`. But it can't
+just be _any_ function; it needs to respect the equivalence on
+`ℤ₂`. More precisely, `f` must map equivalent elements of `ℤ₂` to the
+same element of `ℤ₁`. So we'll need to provide a proof that `f`
+behaves as required.
+
+That means we have at least three new concepts to introduce: the
+quotient set `ℤ₁`, the mapping function `f`, and the proof that `f`
+respects the equivalence on `ℤ₂`. Just as with the definition of
+`IsEquivalence`, these concepts have a name when bundled together: a
+_prequotient_. Time for some more formalization!
+
+First, we need to introduce a more primitive structure that will serve
+as the foundation for our prequotient. We've shown that `ℤ₂` has an
+equivalence relation `_≈₂_`, but the knowledge of that is stored in
+the parameterized record type `IsEquivalence`, which is somewhat
+awkward to deal with in a generic way; if we want to talk abstractly
+about _any_ equivalence over an arbitrary set, we have to introduce
+variables to plug into the arguments of `IsEquivalence`. Instead, we
+can bundle everything together into a single record without
+parameters, and this can be dealt with much more
+easily. Mathematicians call this object a
+[_setoid_](https://en.wikipedia.org/wiki/Setoid), and as the Wikipedia
+definition states, it's simply "a set `X` equipped with an equivalence
+relation `~`".
+
 ```agda
--- A setoid is a set A equipped with an equivalence relation _≈_
 record Setoid : Set₁ where
   field
     A : Set
     _≈_ : Rel₂ A
     isEquiv : IsEquivalence _≈_
-
-ℤ₂-Setoid : Setoid
-ℤ₂-Setoid =
-  record { A = ℤ₂ ; _≈_ = _≈₂_ ; isEquiv = ≈₂-IsEquiv }
 
 record Prequotient : Set₁ where
   field S : Setoid
@@ -314,12 +335,17 @@ record Prequotient : Set₁ where
     Q : Set
     [_] : A → Q
 
-  compat : {B : Set} → (f : A → B) → Set
-  compat f = ∀ {x y} → x ≈ y → f x ≡ f y
+  ≈-respecting : {B : Set} → (f : A → B) → Set
+  ≈-respecting f = ∀ {x y} → x ≈ y → f x ≡ f y
 
   field
-    sound : compat [_]
+    sound : ≈-respecting [_]
+```
 
+There's a lot happening in the definition of `Prequotient`, so let's
+unpack it.
+
+```agda
 ℤ₂-refl-equiv : ∀ x → ⟨ x - x ⟩ ≈₂ ⟨ zero - zero ⟩
 ℤ₂-refl-equiv x = refl
 
@@ -355,6 +381,10 @@ pi-ei-sound ⟨ suc a - zero ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite sym a+d≡b+c =
   sym (ℤ₂→ℤ₁-left-sum a d)
 pi-ei-sound ⟨ suc a - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c =
   pi-ei-sound ⟨ a - b ⟩ ⟨ c - d ⟩ (suc-injective a+d≡b+c)
+
+ℤ₂-Setoid : Setoid
+ℤ₂-Setoid =
+  record { A = ℤ₂ ; _≈_ = _≈₂_ ; isEquiv = ≈₂-IsEquiv }
 
 ℤ₂-ℤ₁-Prequotient : Prequotient
 ℤ₂-ℤ₁-Prequotient =
@@ -393,8 +423,8 @@ record AltQuotient : Set₁ where
   field PQ : Prequotient
   open Prequotient PQ public
   field
-    lift : {B : Set} (f : A → B) → compat f → Q → B
-    lift-β : ∀ {B} f x → (A≈→B≡ : compat f) → lift {B} f A≈→B≡ [ x ] ≡ f x
+    lift : {B : Set} (f : A → B) → ≈-respecting f → Q → B
+    lift-β : ∀ {B} f x → (rf : ≈-respecting f) → lift {B} f rf [ x ] ≡ f x
     qind : (C : Q → Set) → (∀ x → C [ x ]) → (q : Q) → C q
 
 cong-Σ :
@@ -433,14 +463,14 @@ module _ (AQ : AltQuotient) where
     p′ : A → U
     p′ x′ = [ x′ ] , p x′
 
-    compat-p′ : compat p′
-    compat-p′ x≈y = cong-Σ (sound x≈y) (A≈→P≡ x≈y)
+    p′-respects-≈ : ≈-respecting p′
+    p′-respects-≈ x≈y = cong-Σ (sound x≈y) (A≈→P≡ x≈y)
 
     liftU : Q → U
-    liftU = lift p′ compat-p′
+    liftU = lift p′ p′-respects-≈
 
     liftU-β : ∀ x → liftU [ x ] ≡ p′ x
-    liftU-β x = lift-β p′ x compat-p′
+    liftU-β x = lift-β p′ x p′-respects-≈
 
     proj₁-liftU-id : Q → Set
     proj₁-liftU-id c = proj₁ (liftU c) ≡ c
