@@ -327,11 +327,11 @@ record Setoid : Set₁ where
     _≈_ : Rel₂ A
     isEquiv : IsEquivalence _≈_
 
-record Prequotient : Set₁ where
-  field S : Setoid
-  open Setoid S public
+open Setoid {{...}}
 
+record Prequotient : Set₁ where
   field
+    {{S}} : Setoid
     Q : Set
     [_] : A → Q
 
