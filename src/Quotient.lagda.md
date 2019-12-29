@@ -329,17 +329,15 @@ record Setoid : Set₁ where
 
 open Setoid {{...}}
 
+_respects_ : {A B : Set} → (A → B) → Rel₂ A → Set
+f respects _∼_ = ∀ {x y} → x ∼ y → f x ≡ f y
+
 record Prequotient : Set₁ where
   field
     {{S}} : Setoid
     Q : Set
     [_] : A → Q
-
-  ≈-respecting : {B : Set} → (f : A → B) → Set
-  ≈-respecting f = ∀ {x y} → x ≈ y → f x ≡ f y
-
-  field
-    sound : ≈-respecting [_]
+    sound : [_] respects _≈_
 ```
 
 There's a lot happening in the definition of `Prequotient`, so let's
@@ -423,8 +421,8 @@ record AltQuotient : Set₁ where
   field PQ : Prequotient
   open Prequotient PQ public
   field
-    lift : {B : Set} (f : A → B) → ≈-respecting f → Q → B
-    lift-β : ∀ {B} f x → (rf : ≈-respecting f) → lift {B} f rf [ x ] ≡ f x
+    lift : {B : Set} (f : A → B) → f respects _≈_ → Q → B
+    lift-β : ∀ {B} f x → (r : f respects _≈_) → lift {B} f r [ x ] ≡ f x
     qind : (C : Q → Set) → (∀ x → C [ x ]) → (q : Q) → C q
 
 cong-Σ :
@@ -463,7 +461,7 @@ module _ (AQ : AltQuotient) where
     p′ : A → U
     p′ x′ = [ x′ ] , p x′
 
-    p′-respects-≈ : ≈-respecting p′
+    p′-respects-≈ : p′ respects _≈_
     p′-respects-≈ x≈y = cong-Σ (sound x≈y) (A≈→P≡ x≈y)
 
     liftU : Q → U
