@@ -340,59 +340,78 @@ record Prequotient : Set₁ where
     sound : [_] respects _≈_
 ```
 
-There's a lot happening in the definition of `Prequotient`, so let's
-unpack it.
+There's a lot happening here, so let's unpack it. First, the
+definition of `Setoid` makes sense, but what's that `open Setoid
+{{...}}` line after it? That's declaring `Setoid` to be available for
+use as an [_instance
+field_](https://agda.readthedocs.io/en/v2.6.0.1/language/record-types.html#instance-fields)
+inside other records. This enables a simple form of subtyping, because
+whenever a `Setoid` appears as an instance field in another record,
+all of `Setoid`'s fields will be fields of that record as well. And
+you can see that we make use of it in `Prequotient`, since it's built
+upon the concept of `Setoid`.
+
+Next we define a function `_respects_` which is a convenient shorthand
+for the condition that the function `f` mentioned above must
+satisfy. We use this in the `Prequotient` record, which defines the
+following additional fields on top of `Setoid`:
+
+  - `Q` (the _quotient set_), the type whose elements represent the
+    equivalence classes of the `Setoid`;
+  - `[_]`, the mapping function that takes an element of the
+    `Setoid` and identifies the equivalence class it belongs to; and
+  - `sound`, the proof that equivalent elements of the `Setoid` will
+    be mapped to the same equivalence class.
+
+And that's all there is to it! Now let's define a `Setoid` and
+`Prequotient` for our integer types.
 
 ```agda
-ℤ₂-refl-equiv : ∀ x → ⟨ x - x ⟩ ≈₂ ⟨ zero - zero ⟩
-ℤ₂-refl-equiv x = refl
-
-ℤ₂-sum-left-equiv : ∀ a b → ⟨ a - a + b ⟩ ≈₂ ⟨ zero - b ⟩
-ℤ₂-sum-left-equiv a b rewrite +-comm (a + b) 0 = refl
-
-ℤ₂→ℤ₁ : ℤ₂ → ℤ₁
-ℤ₂→ℤ₁ ⟨ zero - zero ⟩ = ℤ₀
-ℤ₂→ℤ₁ ⟨ zero - suc y ⟩ = ℤ₋ y
-ℤ₂→ℤ₁ ⟨ suc x - zero ⟩ = ℤ₊ x
-ℤ₂→ℤ₁ ⟨ suc x - suc y ⟩ = ℤ₂→ℤ₁ ⟨ x - y ⟩
-
-ℤ₂→ℤ₁-refl : ∀ x → ℤ₂→ℤ₁ ⟨ x - x ⟩ ≡ ℤ₀
-ℤ₂→ℤ₁-refl zero = refl
-ℤ₂→ℤ₁-refl (suc x) = ℤ₂→ℤ₁-refl x
-
-ℤ₂→ℤ₁-right-sum : ∀ x y → ℤ₂→ℤ₁ ⟨ x - x + suc y ⟩ ≡ ℤ₋ y
-ℤ₂→ℤ₁-right-sum zero y = refl
-ℤ₂→ℤ₁-right-sum (suc x) y = ℤ₂→ℤ₁-right-sum x y
-
-ℤ₂→ℤ₁-left-sum : ∀ x y → ℤ₂→ℤ₁ ⟨ suc x + y - y ⟩ ≡ ℤ₊ x
-ℤ₂→ℤ₁-left-sum x zero rewrite +-comm x 0 = refl
-ℤ₂→ℤ₁-left-sum x (suc y) rewrite +-suc x y =
-  ℤ₂→ℤ₁-left-sum x y
-
-pi-ei-sound :
-  (a b : ℤ₂) → a ≈₂ b → ℤ₂→ℤ₁ a ≡ ℤ₂→ℤ₁ b
-pi-ei-sound ⟨ zero - zero ⟩ ⟨ c - d ⟩ a+d≡b+c
-  rewrite a+d≡b+c | ℤ₂→ℤ₁-refl c = refl
-pi-ei-sound ⟨ zero - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c
-  rewrite +-comm (suc b) c | a+d≡b+c | ℤ₂→ℤ₁-right-sum c b = refl
-pi-ei-sound ⟨ suc a - zero ⟩ ⟨ c - d ⟩ a+d≡b+c rewrite sym a+d≡b+c =
-  sym (ℤ₂→ℤ₁-left-sum a d)
-pi-ei-sound ⟨ suc a - suc b ⟩ ⟨ c - d ⟩ a+d≡b+c =
-  pi-ei-sound ⟨ a - b ⟩ ⟨ c - d ⟩ (suc-injective a+d≡b+c)
-
 ℤ₂-Setoid : Setoid
 ℤ₂-Setoid =
   record { A = ℤ₂ ; _≈_ = _≈₂_ ; isEquiv = ≈₂-IsEquiv }
 
-ℤ₂-ℤ₁-Prequotient : Prequotient
-ℤ₂-ℤ₁-Prequotient =
+[_]₁ : ℤ₂ → ℤ₁
+[ ⟨ zero - zero ⟩ ]₁ = ℤ₀
+[ ⟨ zero - suc y ⟩ ]₁ = ℤ₋ y
+[ ⟨ suc x - zero ⟩ ]₁ = ℤ₊ x
+[ ⟨ suc x - suc y ⟩ ]₁ = [ ⟨ x - y ⟩ ]₁
+
+[·]₁-refl : ∀ x → [ ⟨ x - x ⟩ ]₁ ≡ ℤ₀
+[·]₁-refl zero = refl
+[·]₁-refl (suc x) = [·]₁-refl x
+
+[·]₁-right-sum : ∀ x y → [ ⟨ x - x + suc y ⟩ ]₁ ≡ ℤ₋ y
+[·]₁-right-sum zero y = refl
+[·]₁-right-sum (suc x) y = [·]₁-right-sum x y
+
+[·]₁-left-sum : ∀ x y → [ ⟨ suc x + y - y ⟩ ]₁ ≡ ℤ₊ x
+[·]₁-left-sum x zero rewrite +-comm x 0 = refl
+[·]₁-left-sum x (suc y) rewrite +-suc x y = [·]₁-left-sum x y
+
+[·]₁-sound : (a b : ℤ₂) → a ≈₂ b → [ a ]₁ ≡ [ b ]₁
+[·]₁-sound ⟨ zero - zero ⟩ ⟨ b₁ - b₂ ⟩ 0+b₂≡0+b₁
+  rewrite 0+b₂≡0+b₁ | [·]₁-refl b₁ = refl
+[·]₁-sound ⟨ zero - suc a₂′ ⟩ ⟨ b₁ - b₂ ⟩ 0+b₂≡1+a₂′+c
+  rewrite +-comm (suc a₂′) b₁ | 0+b₂≡1+a₂′+c | [·]₁-right-sum b₁ a₂′ = refl
+[·]₁-sound ⟨ suc a₁′ - zero ⟩ ⟨ b₁ - b₂ ⟩ 1+a₁′+b₂≡0+b₁
+  rewrite sym 1+a₁′+b₂≡0+b₁ = sym ([·]₁-left-sum a₁′ b₂)
+[·]₁-sound ⟨ suc a₁′ - suc a₂′ ⟩ ⟨ b₁ - b₂ ⟩ 1+a₁′+b₂≡1+a₂′+b₁ =
+  [·]₁-sound ⟨ a₁′ - a₂′ ⟩ ⟨ b₁ - b₂ ⟩ (suc-injective 1+a₁′+b₂≡1+a₂′+b₁)
+
+ℤ₁-Prequotient : Prequotient
+ℤ₁-Prequotient =
   record
     { S = ℤ₂-Setoid
     ; Q = ℤ₁
-    ; [_] = ℤ₂→ℤ₁
-    ; sound = λ {x y} → pi-ei-sound x y
+    ; [_] = [_]₁
+    ; sound = λ {x y} → [·]₁-sound x y
     }
+```
 
+Another big chunk of code!
+
+```agda
 module _ {PQ : Prequotient} where
   open Prequotient PQ
 
