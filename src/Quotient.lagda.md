@@ -381,23 +381,63 @@ And that's all there is to it! Now let's define a `Setoid` and
 [·]₁-refl zero = refl
 [·]₁-refl (suc x) = [·]₁-refl x
 
-[·]₁-right-sum : ∀ x y → [ ⟨ x - x + suc y ⟩ ]₁ ≡ ℤ₋ y
-[·]₁-right-sum zero y = refl
-[·]₁-right-sum (suc x) y = [·]₁-right-sum x y
+[·]₁-right-excess : ∀ x y → [ ⟨ x - x + suc y ⟩ ]₁ ≡ ℤ₋ y
+[·]₁-right-excess zero y = refl
+[·]₁-right-excess (suc x) y = [·]₁-right-excess x y
 
-[·]₁-left-sum : ∀ x y → [ ⟨ suc x + y - y ⟩ ]₁ ≡ ℤ₊ x
-[·]₁-left-sum x zero rewrite +-comm x 0 = refl
-[·]₁-left-sum x (suc y) rewrite +-suc x y = [·]₁-left-sum x y
+[·]₁-left-excess : ∀ x y → [ ⟨ x + suc y - x ⟩ ]₁ ≡ ℤ₊ y
+[·]₁-left-excess zero y = refl
+[·]₁-left-excess (suc x) y = [·]₁-left-excess x y
 
 [·]₁-sound : (a b : ℤ₂) → a ≈₂ b → [ a ]₁ ≡ [ b ]₁
-[·]₁-sound ⟨ zero - zero ⟩ ⟨ b₁ - b₂ ⟩ 0+b₂≡0+b₁
-  rewrite 0+b₂≡0+b₁ | [·]₁-refl b₁ = refl
-[·]₁-sound ⟨ zero - suc a₂′ ⟩ ⟨ b₁ - b₂ ⟩ 0+b₂≡1+a₂′+c
-  rewrite +-comm (suc a₂′) b₁ | 0+b₂≡1+a₂′+c | [·]₁-right-sum b₁ a₂′ = refl
-[·]₁-sound ⟨ suc a₁′ - zero ⟩ ⟨ b₁ - b₂ ⟩ 1+a₁′+b₂≡0+b₁
-  rewrite sym 1+a₁′+b₂≡0+b₁ = sym ([·]₁-left-sum a₁′ b₂)
-[·]₁-sound ⟨ suc a₁′ - suc a₂′ ⟩ ⟨ b₁ - b₂ ⟩ 1+a₁′+b₂≡1+a₂′+b₁ =
-  [·]₁-sound ⟨ a₁′ - a₂′ ⟩ ⟨ b₁ - b₂ ⟩ (suc-injective 1+a₁′+b₂≡1+a₂′+b₁)
+[·]₁-sound ⟨ a₁ - a₂ ⟩ ⟨ zero - zero ⟩ a₁+0≡a₂+0 =
+    begin
+      [ ⟨ a₁ - a₂ ⟩ ]₁
+    ≡⟨ cong (λ x → [ ⟨ a₁ - x ⟩ ]₁) a₂≡a₁ ⟩
+      [ ⟨ a₁ - a₁ ⟩ ]₁
+    ≡⟨ [·]₁-refl a₁ ⟩
+      ℤ₀
+    ≡⟨⟩
+      [ ⟨ zero - zero ⟩ ]₁
+    ∎
+  where
+    a₂≡a₁ = sym (+-cancelʳ-≡ a₁ a₂ a₁+0≡a₂+0)
+[·]₁-sound ⟨ a₁ - a₂ ⟩ ⟨ zero - suc b₂′ ⟩ a₁+1+b₂′≡a₂+0 =
+    begin
+      [ ⟨ a₁ - a₂ ⟩ ]₁
+    ≡⟨ cong (λ x → [ ⟨ a₁ - x ⟩ ]₁) a₂≡a₁+1+b₂′ ⟩
+      [ ⟨ a₁ - a₁ + suc b₂′ ⟩ ]₁
+    ≡⟨ [·]₁-right-excess a₁ b₂′ ⟩
+      ℤ₋ b₂′
+    ≡⟨⟩
+      [ ⟨ zero - suc b₂′ ⟩ ]₁
+    ∎
+  where
+    a₂≡a₁+1+b₂′ = sym (trans a₁+1+b₂′≡a₂+0 (+-identityʳ a₂))
+[·]₁-sound ⟨ a₁ - a₂ ⟩ ⟨ suc b₁′ - zero ⟩ a₁+0≡a₂+1+b₁′ =
+    begin
+      [ ⟨ a₁ - a₂ ⟩ ]₁
+    ≡⟨ cong (λ x → [ ⟨ x - a₂ ⟩ ]₁) a₁≡a₂+1+b₁′ ⟩
+      [ ⟨ a₂ + suc b₁′ - a₂ ⟩ ]₁
+    ≡⟨ [·]₁-left-excess a₂ b₁′ ⟩
+      ℤ₊ b₁′
+    ≡⟨⟩
+      [ ⟨ suc b₁′ - zero ⟩ ]₁
+    ∎
+  where
+    a₁≡a₂+1+b₁′ = trans (sym (+-identityʳ a₁)) a₁+0≡a₂+1+b₁′
+[·]₁-sound ⟨ a₁ - a₂ ⟩ ⟨ suc b₁′ - suc b₂′ ⟩ a₁+1+b₂′≡a₂+1+b₁′ =
+    begin
+      [ ⟨ a₁ - a₂ ⟩ ]₁
+    ≡⟨ [·]₁-sound ⟨ a₁ - a₂ ⟩ ⟨ b₁′ - b₂′ ⟩ a₁+b₂′≡a₂+b₁′ ⟩
+      [ ⟨ b₁′ - b₂′ ⟩ ]₁
+    ≡⟨⟩
+      [ ⟨ suc b₁′ - suc b₂′ ⟩ ]₁
+    ∎
+  where
+    1+a₁+b₂′≡1+a₂+b₁′ =
+      trans (sym (+-suc a₁ b₂′)) (trans a₁+1+b₂′≡a₂+1+b₁′ (+-suc a₂ b₁′))
+    a₁+b₂′≡a₂+b₁′ = suc-injective 1+a₁+b₂′≡1+a₂+b₁′
 
 ℤ₁-Prequotient : Prequotient
 ℤ₁-Prequotient =
