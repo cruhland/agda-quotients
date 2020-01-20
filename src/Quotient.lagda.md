@@ -25,6 +25,8 @@ open ≡-Reasoning
 Don't worry too much about why these specific imports are needed; I'll
 refer back to them when they're actually referenced in what follows.
 
+## Introduction
+
 So, what is a quotient type? Frequently when modeling a concept in
 Agda, there are multiple data types that do the job, but one may be
 better to use than another in certain contexts. In particular, one
@@ -110,6 +112,8 @@ the same integer. A more mathematical way to phrase it would be that
 we're partitioning `ℤ₂` into [_equivalence
 classes_](https://en.wikipedia.org/wiki/Equivalence_class), with each
 class having a canonical representative in `ℤ₁`.
+
+## Equivalence relations
 
 As a first step, we have to define what it means for two `ℤ₂` terms to
 represent the same integer, that is, we need an [_equivalence
@@ -293,6 +297,8 @@ Whew! That's all the proofs; now just glue them together:
 Voilà! We've demonstrated that `ℤ₂` can be divided into equivalence
 classes. But how do we relate those equivalence classes to the terms
 of `ℤ₁`?
+
+## Setoids and prequotients
 
 A simple solution would be some function `f : ℤ₂ → ℤ₁`. But it can't
 just be _any_ function; it needs to respect the equivalence on
@@ -482,40 +488,48 @@ Now all that remains is to bundle the definitions up into a
     }
 ```
 
+## Simple and definable quotients
+
 We're nearly there!
 
 ```agda
-module _ {PQ : Prequotient} where
-  open Prequotient PQ
+open Prequotient {{...}}
+
+record SimpleQuotient : Set₁ where
+  field
+    {{PQ}} : Prequotient
+    lift : {B : Set} (f : A → B) → f respects _≈_ → Q → B
+    lift-β : ∀ {B} f x → (r : f respects _≈_) → lift {B} f r [ x ] ≡ f x
+    qind : (C : Q → Set) → ((x : A) → C [ x ]) → (q : Q) → C q
+```
+
+## Appendix
+
+This is extra stuff from the paper that I haven't gotten around to
+explaining yet.
+
+```agda
+module _ {{PQ : Prequotient}} where
 
   compat₂ : {B : Q → Set} → (f : (a : A) → B [ a ]) → Set
   compat₂ {B} f = ∀ {x y} → (r : x ≈ y) → subst B (sound r) (f x) ≡ f y
 
 record Quotient : Set₁ where
-  field PQ : Prequotient
-  open Prequotient PQ public
   field
+    {{PQ}} : Prequotient
     qelim :
       (B : Q → Set) →
       (f : (a : A) → B [ a ]) →
-      compat₂ {PQ} {B} f →
+      compat₂ {B} f →
       (q : Q) →
       B q
-    qelim-β : ∀ B f → (c : compat₂ {PQ} f) → ∀ a → qelim B f c [ a ] ≡ f a
+    qelim-β : ∀ B f → (c : compat₂ f) → ∀ a → qelim B f c [ a ] ≡ f a
 
 record ExactQuotient : Set₁ where
   field QQ : Quotient
   open Quotient QQ public
   field
-    exact : ∀ {x y} → [ x ] ≡ [ y ] → x ≈ y
-
-record AltQuotient : Set₁ where
-  field PQ : Prequotient
-  open Prequotient PQ public
-  field
-    lift : {B : Set} (f : A → B) → f respects _≈_ → Q → B
-    lift-β : ∀ {B} f x → (r : f respects _≈_) → lift {B} f r [ x ] ≡ f x
-    qind : (C : Q → Set) → (∀ x → C [ x ]) → (q : Q) → C q
+    exact : {x y : A} → [ x ] ≡ [ y ] → x ≈ y
 
 cong-Σ :
   {A : Set} {B : A → Set} {a a′ : A} {b : B a} {b′ : B a′} →
@@ -542,11 +556,11 @@ subst-irr :
   subst B eq₁ b ≡ subst B eq₂ b
 subst-irr eq₁ eq₂ rewrite ≡-irr eq₁ eq₂ = refl
 
-module _ (AQ : AltQuotient) where
-  open AltQuotient AQ using (PQ; lift; lift-β; qind)
-  open Prequotient PQ
+open SimpleQuotient {{...}}
 
-  module _ (P : Q → Set) (p : (x : A) → P [ x ]) (A≈→P≡ : compat₂ {PQ} p) where
+module _ {{SQ : SimpleQuotient}} where
+
+  module _ (P : Q → Set) (p : (x : A) → P [ x ]) (A≈→P≡ : compat₂ p) where
     U : Set
     U = Σ Q P
 
@@ -592,9 +606,10 @@ module _ (AQ : AltQuotient) where
         p x
       ∎
 
-AltQuotient→Quotient : AltQuotient → Quotient
-AltQuotient→Quotient AQ =
-  record { PQ = AltQuotient.PQ AQ ; qelim = qelim₁ AQ ; qelim-β = qelim-β₁ AQ }
+-- TODO
+-- SimpleQuotient→Quotient : SimpleQuotient → Quotient
+-- SimpleQuotient→Quotient SQ =
+--   record { PQ = SimpleQuotient.PQ SQ ; qelim = qelim₁ SQ ; qelim-β = qelim-β₁ SQ }
 ```
 
 ## Further reading
