@@ -364,19 +364,35 @@ following additional fields on top of `Setoid`:
     be mapped to the same equivalence class.
 
 And that's all there is to it! Now let's define a `Setoid` and
-`Prequotient` for our integer types.
+`Prequotient` for our integer types. The `Setoid` is trivial, since
+we've already defined all of its fields:
 
 ```agda
 ℤ₂-Setoid : Setoid
-ℤ₂-Setoid =
-  record { A = ℤ₂ ; _≈_ = _≈₂_ ; isEquiv = ≈₂-IsEquiv }
+ℤ₂-Setoid = record { A = ℤ₂ ; _≈_ = _≈₂_ ; isEquiv = ≈₂-IsEquiv }
+```
 
+Next is the mapping function:
+
+```agda
 [_]₁ : ℤ₂ → ℤ₁
 [ ⟨ zero - zero ⟩ ]₁ = ℤ₀
 [ ⟨ zero - suc y ⟩ ]₁ = ℤ₋ y
 [ ⟨ suc x - zero ⟩ ]₁ = ℤ₊ x
 [ ⟨ suc x - suc y ⟩ ]₁ = [ ⟨ x - y ⟩ ]₁
+```
 
+It works by normalization. Since a `suc` on both sides of the minus
+sign doesn't change the meaning of an integer, we can remove them
+until we arrive at one of three base cases, corresponding to a
+positive, negative, or zero value. These are directly translatable
+into `ℤ₁`.
+
+Those base cases are also important in the soundness proof for the
+mapping function. The following lemmas are used in the proof; each one
+captures the set of `ℤ₂` values that map onto one of the `ℤ₁` cases.
+
+```agda
 [·]₁-refl : ∀ x → [ ⟨ x - x ⟩ ]₁ ≡ ℤ₀
 [·]₁-refl zero = refl
 [·]₁-refl (suc x) = [·]₁-refl x
@@ -388,7 +404,13 @@ And that's all there is to it! Now let's define a `Setoid` and
 [·]₁-left-excess : ∀ x y → [ ⟨ x + suc y - x ⟩ ]₁ ≡ ℤ₊ y
 [·]₁-left-excess zero y = refl
 [·]₁-left-excess (suc x) y = [·]₁-left-excess x y
+```
 
+And now for the soundness proof itself! It's long, but only because
+I've used equational reasoning to show the steps a bit more
+explicitly.
+
+```agda
 [·]₁-sound : (a b : ℤ₂) → a ≈₂ b → [ a ]₁ ≡ [ b ]₁
 [·]₁-sound ⟨ a₁ - a₂ ⟩ ⟨ zero - zero ⟩ a₁+0≡a₂+0 =
     begin
@@ -438,7 +460,18 @@ And that's all there is to it! Now let's define a `Setoid` and
     1+a₁+b₂′≡1+a₂+b₁′ =
       trans (sym (+-suc a₁ b₂′)) (trans a₁+1+b₂′≡a₂+1+b₁′ (+-suc a₂ b₁′))
     a₁+b₂′≡a₂+b₁′ = suc-injective 1+a₁+b₂′≡1+a₂+b₁′
+```
 
+The first three cases cover the base cases described above, while the
+last one covers the recursive case. In all of them I've used a `where`
+clause to hide some of the more tedious type-management behind a
+definition; in a more practical proof these would have been handled by
+`rewrite` clauses.
+
+Now all that remains is to bundle the definitions up into a
+`Prequotient`:
+
+```agda
 ℤ₁-Prequotient : Prequotient
 ℤ₁-Prequotient =
   record
@@ -449,7 +482,7 @@ And that's all there is to it! Now let's define a `Setoid` and
     }
 ```
 
-Another big chunk of code!
+We're nearly there!
 
 ```agda
 module _ {PQ : Prequotient} where
