@@ -486,22 +486,82 @@ Now all that remains is to bundle the definitions up into a
     ; [_] = [_]₁
     ; sound = λ {x y} → [·]₁-sound x y
     }
+
+open Prequotient {{...}}
 ```
 
 ## Simple and definable quotients
 
-We're nearly there!
+We're nearly there! At this point the paper introduces the formal
+definition of a quotient, but that definition is a bit complicated for
+what we're trying to accomplish. Instead, we're going to use the
+paper's second definition of quotient, which introduces some functions
+that are actually helpful for our use case. There's no name provided
+for this definition, so I've decided to call it `SimpleQuotient`:
 
 ```agda
-open Prequotient {{...}}
-
 record SimpleQuotient : Set₁ where
   field
     {{PQ}} : Prequotient
     lift : {B : Set} (f : A → B) → f respects _≈_ → Q → B
     lift-β : ∀ {B} f x → (r : f respects _≈_) → lift {B} f r [ x ] ≡ f x
-    qind : (C : Q → Set) → ((x : A) → C [ x ]) → (q : Q) → C q
+    qind : (P : Q → Set) → ((x : A) → P [ x ]) → (q : Q) → P q
 ```
+
+What's the significance of these functions? Well, `lift` does what its
+name implies: converts a function `f` on the element type `A` to the
+quotient type `Q`, so long as `f` respects `A`'s equivalence
+relation. The proof `lift-β` ensures that `lift` has the intended
+computational behavior: calling `lift f` on `[ x ]` must give the same
+result as calling `f` on `x` directly. Finally, `qind` is an induction
+principle, which says that if you can show some property `P` holds of
+`[ x ]` for all `x : A`, then that property also holds for all `q :
+Q`. These will be very helpful when we want to define functions and
+proofs on the integers!
+
+However, defining those functions directly seems daunting. Their type
+signatures are a bit complex. Luckily, the paper introduces an even
+simpler concept, that of a _definable quotient_, and shows how it can
+be converted into a `SimpleQuotient`. Here's the definition:
+
+```agda
+record DefinableQuotient : Set₁ where
+  field
+    {{PQ}} : Prequotient
+    emb : Q → A
+    complete : (a : A) → emb [ a ] ≈ a
+    stable : (q : Q) → [ emb q ] ≡ q
+```
+
+Yes, you read that correctly; we're simply defining the reverse
+mapping of `[_]`, and showing that it preserves both equivalence on
+`A` and equality on `Q`. Now to show that this is enough to produce a
+`SimpleQuotient`:
+
+```agda
+mkSimpleQuotient : DefinableQuotient → SimpleQuotient
+mkSimpleQuotient
+    record { PQ = PQ ; emb = emb ; complete = complete ; stable = stable } =
+      record { PQ = PQ ; lift = lift ; lift-β = lift-β ; qind = qind }
+  where
+    -- TODO can the renaming be avoided?
+    open Prequotient PQ renaming (Q to QQ; [_] to [[_]])
+
+    lift : {B : Set} (f : A → B) → f respects _≈_ → QQ → B
+    lift f r q = f (emb q)
+
+    lift-β : ∀ {B} f x → (r : f respects _≈_) → lift {B} f r [[ x ]] ≡ f x
+    lift-β f x r = r (complete x)
+
+    qind : (P : QQ → Set) → ((x : A) → P [ x ]) → (q : QQ) → P q
+    qind P f q = subst P (stable q) (f (emb q))
+```
+
+TODO explain
+
+Let's create a `DefinableQuotient` for our integer types!
+
+TODO
 
 ## Appendix
 
