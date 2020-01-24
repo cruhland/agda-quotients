@@ -127,13 +127,13 @@ Rel₂ : (A : Set) → Set₁
 Rel₂ A = A → A → Set
 
 Reflexive : {A : Set} (_∼_ : Rel₂ A) → Set
-Reflexive _∼_ = ∀ x → x ∼ x
+Reflexive _∼_ = ∀ {x} → x ∼ x
 
 Symmetric : {A : Set} (_∼_ : Rel₂ A) → Set
-Symmetric _∼_ = ∀ x y → x ∼ y → y ∼ x
+Symmetric _∼_ = ∀ {x y} → x ∼ y → y ∼ x
 
 Transitive : {A : Set} (_∼_ : Rel₂ A) → Set
-Transitive _∼_ = ∀ x y z → x ∼ y → y ∼ z → x ∼ z
+Transitive _∼_ = ∀ {x y z} → x ∼ y → y ∼ z → x ∼ z
 
 record IsEquivalence {A : Set} (_≈_ : Rel₂ A) : Set where
   field
@@ -185,7 +185,7 @@ with the first and simplest property, reflexivity:
 
 ```agda
 ≈₂-refl : Reflexive _≈₂_
-≈₂-refl ⟨ a₁ - a₂ ⟩ = +-comm a₁ a₂
+≈₂-refl {⟨ a₁ - a₂ ⟩} = +-comm a₁ a₂
 ```
 
 Expanding the definition of `Reflexive`, and pattern matching on the
@@ -197,7 +197,7 @@ Symmetry is slightly more involved:
 
 ```agda
 ≈₂-sym : Symmetric _≈₂_
-≈₂-sym ⟨ a₁ - a₂ ⟩ ⟨ b₁ - b₂ ⟩ a₁+b₂≡a₂+b₁ =
+≈₂-sym {⟨ a₁ - a₂ ⟩} {⟨ b₁ - b₂ ⟩} a₁+b₂≡a₂+b₁ =
   begin
     b₁ + a₂
   ≡⟨ +-comm b₁ a₂ ⟩
@@ -220,7 +220,7 @@ for an English translation:
 
 ```agda
 ≈₂-trans : Transitive _≈₂_
-≈₂-trans ⟨ a₁ - a₂ ⟩ ⟨ b₁ - b₂ ⟩ ⟨ c₁ - c₂ ⟩ a₁+b₂≡a₂+b₁ b₁+c₂≡b₂+c₁ =
+≈₂-trans {⟨ a₁ - a₂ ⟩} {⟨ b₁ - b₂ ⟩} {⟨ c₁ - c₂ ⟩} a₁+b₂≡a₂+b₁ b₁+c₂≡b₂+c₁ =
   let [a₁+b₂]+[b₁+c₂]≡[a₂+b₁]+[b₂+c₁] = eqn-add a₁+b₂≡a₂+b₁ b₁+c₂≡b₂+c₁
       [a₁+c₂]+[b₂+b₁]≡[a₂+c₁]+[b₁+b₂] = rearr [a₁+b₂]+[b₁+c₂]≡[a₂+b₁]+[b₂+c₁]
       a₁+c₂≡a₂+c₁ = cancelʳ [a₁+c₂]+[b₂+b₁]≡[a₂+c₁]+[b₁+b₂] (+-comm b₂ b₁)
@@ -571,6 +571,52 @@ Finally, `qind` starts out similar to `lift`: convert `Q` into `A` via
 rewrite and obtain `P q`.
 
 Now let's create a `DefinableQuotient` for our integer types!
+
+```agda
+[_]₂ : ℤ₁ → ℤ₂
+[ ℤ₊ x ]₂ = ⟨ suc x - zero ⟩
+[ ℤ₀ ]₂ = ⟨ zero - zero ⟩
+[ ℤ₋ x ]₂ = ⟨ zero - suc x ⟩
+
+≈₂-suc : ∀ {x y} → ⟨ x - y ⟩ ≈₂ ⟨ suc x - suc y ⟩
+≈₂-suc {x} {y} =
+  begin
+    x + suc y
+  ≡⟨ +-suc x y ⟩
+    suc (x + y)
+  ≡⟨ cong suc (+-comm x y) ⟩
+    suc (y + x)
+  ≡⟨ sym (+-suc y x) ⟩
+    y + suc x
+  ∎
+
+complete : (a : ℤ₂) → [ [ a ]₁ ]₂ ≈₂ a
+complete ⟨ zero - zero ⟩ = refl
+complete ⟨ zero - suc a₂ ⟩ = cong suc (sym (+-identityʳ a₂))
+complete ⟨ suc a₁ - zero ⟩ = cong suc (+-identityʳ a₁)
+complete ⟨ suc a₁ - suc a₂ ⟩ = ≈₂-trans (complete ⟨ a₁ - a₂ ⟩) ≈₂-suc
+
+stable : (q : ℤ₁) → [ [ q ]₂ ]₁ ≡ q
+stable (ℤ₊ x) = refl
+stable ℤ₀ = refl
+stable (ℤ₋ x) = refl
+
+ℤ₁-DefinableQuotient : DefinableQuotient
+ℤ₁-DefinableQuotient =
+  record
+    { PQ = ℤ₁-Prequotient
+    ; emb = [_]₂
+    ; complete = complete
+    ; stable = stable
+    }
+
+ℤ₁-SimpleQuotient : SimpleQuotient
+ℤ₁-SimpleQuotient = mkSimpleQuotient ℤ₁-DefinableQuotient
+```
+
+TODO explain
+
+## Using the quotient
 
 TODO
 
