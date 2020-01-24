@@ -547,6 +547,7 @@ mkSimpleQuotient
     -- TODO can the renaming be avoided?
     open Prequotient PQ renaming (Q to QQ; [_] to [[_]])
 
+    -- TODO is the proof argument needed here?
     lift : {B : Set} (f : A → B) → f respects _≈_ → QQ → B
     lift f r q = f (emb q)
 
@@ -557,9 +558,19 @@ mkSimpleQuotient
     qind P f q = subst P (stable q) (f (emb q))
 ```
 
-TODO explain
+To define `lift`, we simply convert the `Q` value to its corresponding
+`A` value, and call `f` on that. For `lift-β`, we use `complete` to
+show that `emb [ x ] ≈ x`, and then make use of the `f respects _≈_`
+argument to convert that to `f (emb [ x ]) ≡ f x`. This satisfies the
+return type because `lift f r [ x ]` reduces to `f (emb [ x ])` by
+definition.
 
-Let's create a `DefinableQuotient` for our integer types!
+Finally, `qind` starts out similar to `lift`: convert `Q` into `A` via
+`emb`, then call `f` to obtain a value of type `P [ emb q ]`. From
+`stable q` we know that `[ emb q ] ≡ q`, so use `subst` to perform the
+rewrite and obtain `P q`.
+
+Now let's create a `DefinableQuotient` for our integer types!
 
 TODO
 
