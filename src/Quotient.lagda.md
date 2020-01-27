@@ -64,20 +64,20 @@ integers), but the symmetry of the above definition is conceptually
 clearer. Unfortunately this clarity doesn't extend to functions defined over this data type. Consider addition:
 
 ```agda
-_+₁_ : ℤ₁ → ℤ₁ → ℤ₁
-ℤ₊ a₊ +₁ ℤ₊ b₊ = ℤ₊ (suc (a₊ + b₊))
-ℤ₊ a₊ +₁ ℤ₀ = ℤ₊ a₊
-ℤ₊ zero +₁ ℤ₋ zero = ℤ₀
-ℤ₊ zero +₁ ℤ₋ (suc b₋) = ℤ₋ b₋
-ℤ₊ (suc a₊) +₁ ℤ₋ zero = ℤ₊ a₊
-ℤ₊ (suc a₊) +₁ ℤ₋ (suc b₋) = (ℤ₊ a₊) +₁ (ℤ₋ b₋)
-ℤ₀ +₁ y = y
-ℤ₋ a₋ +₁ ℤ₋ b₋ = ℤ₋ (suc (a₋ + b₋))
-ℤ₋ a₋ +₁ ℤ₀ = ℤ₋ a₋
-ℤ₋ zero +₁ ℤ₊ zero = ℤ₀
-ℤ₋ zero +₁ ℤ₊ (suc b₊) = ℤ₊ b₊
-ℤ₋ (suc a₋) +₁ ℤ₊ zero = ℤ₋ a₋
-ℤ₋ (suc a₋) +₁ ℤ₊ (suc b₊) = (ℤ₋ a₋) +₁ (ℤ₊ b₊)
+_+₁-bad_ : ℤ₁ → ℤ₁ → ℤ₁
+ℤ₊ a₊ +₁-bad ℤ₊ b₊ = ℤ₊ (suc (a₊ + b₊))
+ℤ₊ a₊ +₁-bad ℤ₀ = ℤ₊ a₊
+ℤ₊ zero +₁-bad ℤ₋ zero = ℤ₀
+ℤ₊ zero +₁-bad ℤ₋ (suc b₋) = ℤ₋ b₋
+ℤ₊ (suc a₊) +₁-bad ℤ₋ zero = ℤ₊ a₊
+ℤ₊ (suc a₊) +₁-bad ℤ₋ (suc b₋) = (ℤ₊ a₊) +₁-bad (ℤ₋ b₋)
+ℤ₀ +₁-bad y = y
+ℤ₋ a₋ +₁-bad ℤ₋ b₋ = ℤ₋ (suc (a₋ + b₋))
+ℤ₋ a₋ +₁-bad ℤ₀ = ℤ₋ a₋
+ℤ₋ zero +₁-bad ℤ₊ zero = ℤ₀
+ℤ₋ zero +₁-bad ℤ₊ (suc b₊) = ℤ₊ b₊
+ℤ₋ (suc a₋) +₁-bad ℤ₊ zero = ℤ₋ a₋
+ℤ₋ (suc a₋) +₁-bad ℤ₊ (suc b₊) = (ℤ₋ a₋) +₁-bad (ℤ₊ b₊)
 ```
 
 What a mess! It's hard to tell whether this implementation is
@@ -618,7 +618,18 @@ TODO explain
 
 ## Using the quotient
 
-TODO
+At long last, we can now use our quotient on ℤ₁ to define operations
+in terms of ℤ₂:
+
+```agda
+-- TODO show that _+₂_ respects _≈₂_
+
+lift₂ : (ℤ₂ → ℤ₂ → ℤ₂) → (ℤ₁ → ℤ₁ → ℤ₁)
+lift₂ f p q = [ f [ p ]₂ [ q ]₂ ]₁
+
+_+₁_ : ℤ₁ → ℤ₁ → ℤ₁
+_+₁_ = lift₂ _+₂_
+```
 
 ## Appendix
 
