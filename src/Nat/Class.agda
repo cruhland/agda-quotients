@@ -8,7 +8,7 @@ record Nat (ℕ : Set) : Set₁ where
     zero : ℕ
     succ : ℕ → ℕ
 
-    ind : (P : ℕ → Set) → P zero → (∀ k → P k → P (succ k)) → ∀ n → P n
+    ind : (P : ℕ → Set) → P zero → (∀ {k} → P k → P (succ k)) → ∀ n → P n
 
     _+_ : ℕ → ℕ → ℕ
     +-zero : ∀ {n} → zero + n ≡ n
@@ -35,8 +35,8 @@ module _ {ℕ : Set} {{nn : Nat ℕ}} where
           succ (zero + n′)
         ∎
 
-      Succˡ-succ : ∀ m′ → Succˡ m′ → Succˡ (succ m′)
-      Succˡ-succ m′ ih n′ =
+      Succˡ-succ : ∀ {m′} → Succˡ m′ → Succˡ (succ m′)
+      Succˡ-succ {m′} ih n′ =
         begin
           succ (succ m′) + n′
         ≡⟨ +-succ ⟩
@@ -46,6 +46,9 @@ module _ {ℕ : Set} {{nn : Nat ℕ}} where
         ≡⟨ cong succ (sym +-succ) ⟩
           succ (succ m′ + n′)
         ∎
+
+  +-succʳ : {m n : ℕ} → m + succ n ≡ succ (m + n)
+  +-succʳ = trans (sym +-succ) +-succˡ
 
   +-assoc : {m n p : ℕ} → (m + n) + p ≡ m + (n + p)
   +-assoc {m} {n} {p} = ind Assoc Assoc-zero Assoc-succ m
@@ -63,8 +66,8 @@ module _ {ℕ : Set} {{nn : Nat ℕ}} where
           zero + (n + p)
         ∎
 
-      Assoc-succ : ∀ k → Assoc k → Assoc (succ k)
-      Assoc-succ k ih =
+      Assoc-succ : ∀ {k} → Assoc k → Assoc (succ k)
+      Assoc-succ {k} ih =
         begin
           (succ k + n) + p
         ≡⟨ cong (_+ p) +-succˡ ⟩
