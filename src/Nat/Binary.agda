@@ -47,6 +47,12 @@ succ : ℕ₂ → ℕ₂
 succ zero = pos []
 succ (pos bs) = pos (succ⁺ bs)
 
+-- TODO: try to build a rec implementation that computes the
+-- predecessor to do unary recursion on binary numbers!  However, the
+-- predecessor function must return a proof showing that its result is
+-- less than its argument, otherwise Agda doesn't know if the
+-- recursion will terminate
+
 digitsFold : {B : Set} → (B → Bool → Bool → B) → B → ℕ₂ → ℕ₂ → B
 digitsFold f z zero zero =
   f z false false
@@ -81,8 +87,6 @@ m + n =
   let rs , c = digitsFold adder ([] , false) m n
    in revNormalize (c ∷ rs) zero
 
--- Or, alternative TODO: try to build a rec implementation that
--- computes the predecessor to do unary recursion on binary numbers!
 _ : zero + zero ≡ zero
 _ =
   begin
@@ -90,9 +94,99 @@ _ =
   ≡⟨⟩
     let rs , c = digitsFold adder ([] , false) zero zero
      in revNormalize (c ∷ rs) zero
-  -- TODO: Start small and try to find some patterns to work with!
+  ≡⟨⟩
+    let rs , c = adder ([] , false) false false
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = (false xor (false xor false)) ∷ []
+        c = (false ∧ (false xor false)) ∨ (false ∧ false)
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = false ∷ []
+        c = false
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+     revNormalize (false ∷ false ∷ []) zero
+  ≡⟨⟩
+     revNormalize (false ∷ []) zero
+  ≡⟨⟩
+     revNormalize [] zero
   ≡⟨⟩
     zero
+  ∎
+
+_ : zero + pos [] ≡ pos []
+_ =
+  begin
+    zero + pos []
+  ≡⟨⟩
+    let rs , c = digitsFold adder ([] , false) zero (pos [])
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs , c = adder ([] , false) false true
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = (false xor (false xor true)) ∷ []
+        c = (false ∧ (false xor true)) ∨ (false ∧ true)
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = true ∷ []
+        c = false
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+     revNormalize (false ∷ true ∷ []) zero
+  ≡⟨⟩
+     revNormalize (true ∷ []) zero
+  ≡⟨⟩
+     revNormalize [] (pos [])
+  ≡⟨⟩
+    pos []
+  ∎
+
+_ : pos [] + zero ≡ pos []
+_ =
+  begin
+    pos [] + zero
+  ≡⟨⟩
+    let rs , c = digitsFold adder ([] , false) (pos []) zero
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs , c = adder ([] , false) true false
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = (false xor (true xor false)) ∷ []
+        c = (false ∧ (true xor false)) ∨ (true ∧ false)
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = true ∷ []
+        c = false
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+     revNormalize (false ∷ true ∷ []) zero
+  ≡⟨⟩
+     revNormalize (true ∷ []) zero
+  ≡⟨⟩
+     revNormalize [] (pos [])
+  ≡⟨⟩
+    pos []
+  ∎
+
+_ : zero + pos (false ∷ []) ≡ pos (false ∷ [])
+_ =
+  begin
+    zero + pos (false ∷ [])
+  ≡⟨⟩
+    let rs , c = digitsFold adder ([] , false) zero (pos (false ∷ []))
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs , c = digitsFold adder (adder ([] , false) false false) zero (pos [])
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs , c = adder (adder ([] , false) false false) false true
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    -- TODO Keep expanding evaluation of this!
+    pos (false ∷ [])
   ∎
 
 +-identityˡ : ∀ {n} → zero + n ≡ n
