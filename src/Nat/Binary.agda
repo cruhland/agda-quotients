@@ -143,34 +143,6 @@ _ =
     pos []
   ∎
 
-_ : pos [] + zero ≡ pos []
-_ =
-  begin
-    pos [] + zero
-  ≡⟨⟩
-    let rs , c = digitsFold adder ([] , false) (pos []) zero
-     in revNormalize (c ∷ rs) zero
-  ≡⟨⟩
-    let rs , c = adder ([] , false) true false
-     in revNormalize (c ∷ rs) zero
-  ≡⟨⟩
-    let rs = (false xor (true xor false)) ∷ []
-        c = (false ∧ (true xor false)) ∨ (true ∧ false)
-     in revNormalize (c ∷ rs) zero
-  ≡⟨⟩
-    let rs = true ∷ []
-        c = false
-     in revNormalize (c ∷ rs) zero
-  ≡⟨⟩
-     revNormalize (false ∷ true ∷ []) zero
-  ≡⟨⟩
-     revNormalize (true ∷ []) zero
-  ≡⟨⟩
-     revNormalize [] (pos [])
-  ≡⟨⟩
-    pos []
-  ∎
-
 _ : zero + pos (false ∷ []) ≡ pos (false ∷ [])
 _ =
   begin
@@ -182,11 +154,85 @@ _ =
     let rs , c = digitsFold adder (adder ([] , false) false false) zero (pos [])
      in revNormalize (c ∷ rs) zero
   ≡⟨⟩
-    let rs , c = adder (adder ([] , false) false false) false true
+    let bs′ = (false xor (false xor false)) ∷ []
+        c′ = (false ∧ (false xor false)) ∨ (false ∧ false)
+        rs , c = digitsFold adder (bs′ , c′) zero (pos [])
      in revNormalize (c ∷ rs) zero
   ≡⟨⟩
-    -- TODO Keep expanding evaluation of this!
+    let rs , c = digitsFold adder (false ∷ [] , false) zero (pos [])
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs , c = adder (false ∷ [] , false) false true
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+    let rs = (false xor (false xor true)) ∷ false ∷ []
+        c = (false ∧ (false xor true)) ∨ (false ∧ true)
+     in revNormalize (c ∷ rs) zero
+  ≡⟨⟩
+     revNormalize (false ∷ true ∷ false ∷ []) zero
+  ≡⟨⟩
+     revNormalize (true ∷ false ∷ []) zero
+  ≡⟨⟩
+     revNormalize (false ∷ []) (pos [])
+  ≡⟨⟩
+     revNormalize [] (pos (false ∷ []))
+  ≡⟨⟩
     pos (false ∷ [])
+  ∎
+
+-- TODO Expand more zero + n examples
+reverse-∷ :
+  {A : Set} {x : A} {xs : List A} →
+  reverse (x ∷ xs) ≡ reverse xs ++ (x ∷ [])
+reverse-∷ {A} {x} {xs} =
+  begin
+    reverse (x ∷ xs)
+  ≡⟨⟩
+    foldl (flip _∷_) [] (x ∷ xs)
+  ≡⟨⟩
+    foldl (flip _∷_) (flip _∷_ [] x) xs
+  ≡⟨⟩
+    foldl (flip _∷_) (x ∷ []) xs
+  ≡⟨ {!!} ⟩
+    foldl (flip _∷_) [] xs ++ (x ∷ [])
+  ≡⟨⟩
+    reverse xs ++ (x ∷ [])
+  ∎
+
+reverse-∷-++ :
+  {A : Set} {x : A} {xs ys : List A} →
+  reverse (x ∷ xs) ++ ys ≡ reverse xs ++ x ∷ ys
+reverse-∷-++ {A} {x} {[]} {ys} = refl
+reverse-∷-++ {A} {x} {x′ ∷ xs′} {ys} =
+  begin
+    reverse (x ∷ x′ ∷ xs′) ++ ys
+  ≡⟨ {!!} ⟩
+    reverse (x′ ∷ xs′) ++ x ∷ ys
+  ∎
+
+adder-ca-false : ∀ {b bs} → adder (bs , false) false b ≡ (b ∷ bs , false)
+adder-ca-false = refl
+
+digitsFold-adder-zeroˡ-carry :
+  ∀ {bs n} → proj₂ (digitsFold adder (bs , false) zero n) ≡ false
+digitsFold-adder-zeroˡ-carry {n = zero} = refl
+digitsFold-adder-zeroˡ-carry {n = pos []} = refl
+digitsFold-adder-zeroˡ-carry {n = pos (b ∷ bs₂)} =
+  digitsFold-adder-zeroˡ-carry {n = pos bs₂}
+
+digitsFold-adder-zeroˡ-sum :
+  ∀ {rs bs} →
+  proj₁ (digitsFold adder (rs , false) zero (pos bs)) ≡ true ∷ reverse bs ++ rs
+digitsFold-adder-zeroˡ-sum {rs} {[]} = refl
+digitsFold-adder-zeroˡ-sum {rs} {b ∷ bs} =
+  begin
+    proj₁ (digitsFold adder (rs , false) zero (pos (b ∷ bs)))
+  ≡⟨⟩
+    proj₁ (digitsFold adder (b ∷ rs , false) zero (pos bs))
+  ≡⟨ digitsFold-adder-zeroˡ-sum {b ∷ rs} {bs} ⟩
+    true ∷ reverse bs ++ b ∷ rs
+  ≡⟨ {!!} ⟩
+    true ∷ reverse (b ∷ bs) ++ rs
   ∎
 
 +-identityˡ : ∀ {n} → zero + n ≡ n
