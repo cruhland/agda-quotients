@@ -189,8 +189,8 @@ with the first and simplest property, reflexivity:
 ```
 
 Expanding the definition of `Reflexive`, and pattern matching on the
-lone `ℤ₂` argument, we see that we need to prove `⟨ a₁ - a₂ ⟩ ≈₂ ⟨ a₁
-- a₂ ⟩`. Evaluating `_≈₂_`, we can see this is the same as `a₁ + a₂ ≡
+lone `ℤ₂` argument, we see that we need to prove `⟨ a₁ - a₂ ⟩ ≈₂ ⟨ a₁ - a₂ ⟩`.
+Evaluating `_≈₂_`, we can see this is the same as `a₁ + a₂ ≡
 a₂ + a₁`, which is just the commutative property of `+` on `ℕ`.
 
 Symmetry is slightly more involved:
